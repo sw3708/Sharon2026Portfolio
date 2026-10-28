@@ -1275,7 +1275,9 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   window.addEventListener('portfolio-mode-change',()=>{
     if(document.documentElement.getAttribute('data-theme')!=='dark')return;
     if(projectDialog.open)projectDialog.close();
-    if(caseOpen&&!caseAnimating)closeCase(()=>document.getElementById('sandboxWork').scrollIntoView({behavior:'smooth',block:'start'}));
+    const resetTop=()=>window.scrollTo({top:0,left:0,behavior:'instant'});
+    if(caseOpen&&!caseAnimating)closeCase(resetTop);
+    else requestAnimationFrame(resetTop);
   });
 
   document.addEventListener('keydown', e => {
