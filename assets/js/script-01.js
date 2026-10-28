@@ -1,0 +1,1 @@
+document.documentElement.classList.add('hero-intro');window.__heroIntroFallback=setTimeout(function(){document.documentElement.classList.add('hero-film-revealed','hero-intro-complete');},6000);

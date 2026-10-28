@@ -1,0 +1,20 @@
+
+/* Gallery: title and moving artwork share the same row. */
+#portfolioGallery .work-carousel{display:grid;grid-template-columns:clamp(230px,26vw,390px) minmax(0,1fr);align-items:start;gap:clamp(24px,3vw,48px);padding:70px 0 65px clamp(24px,5vw,80px);}
+#portfolioGallery .gc-heading{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:36px;margin:0;padding-top:0;min-width:0;}
+#portfolioGallery .gc-heading h2{font-size:clamp(66px,7.2vw,110px);}
+#portfolioGallery .gc-handwritten{font-size:clamp(23px,2.1vw,31px);max-width:270px;}
+#portfolioGallery .gc-controls{flex-wrap:wrap;justify-content:flex-start;gap:12px;align-self:stretch;}
+.gc-control-status{display:flex;align-items:center;gap:18px;flex-basis:100%;}
+#portfolioGallery .gc-controls .gc-motion{margin:0;}
+#portfolioGallery .gc-track{width:100%;scroll-snap-type:none;align-self:start;}
+#portfolioGallery .gc-row{gap:22px;padding:0 40px 0 0;align-items:start;}
+#portfolioGallery .gc-item{width:clamp(270px,34vw,500px);scroll-snap-align:none;flex-shrink:0;}
+#portfolioGallery .gc-artworks{height:clamp(320px,36vw,490px);display:grid;grid-template-rows:minmax(0,1fr);gap:12px;}
+#portfolioGallery .gc-art{height:100%;min-height:0;overflow:hidden;}
+#portfolioGallery .gc-art img,#portfolioGallery .gc-art video{object-fit:contain;}
+#portfolioGallery .gc-pair{width:clamp(330px,30vw,450px);}
+#portfolioGallery .gc-pair .gc-artworks{grid-template-rows:repeat(2,minmax(0,1fr));}
+#portfolioGallery .gc-item figcaption{padding-top:14px;gap:12px;}
+#portfolioGallery .gc-item figcaption>span:last-child{text-align:right;}
+@media(max-width:700px){#portfolioGallery .work-carousel{grid-template-columns:150px minmax(0,1fr);gap:18px;padding:45px 0 40px 20px;}#portfolioGallery .gc-heading h2{font-size:52px;}#portfolioGallery .gc-kicker{font-size:8px;letter-spacing:.06em;}#portfolioGallery .gc-handwritten{font-size:23px;margin-top:12px;}#portfolioGallery .gc-heading{gap:24px;}#portfolioGallery .gc-controls{gap:8px;}#portfolioGallery .gc-control-status{flex-wrap:wrap;gap:0;}#portfolioGallery .gc-controls .gc-motion{min-height:32px;}#portfolioGallery .gc-count{font-size:10px;}#portfolioGallery .gc-item{width:68vw;}#portfolioGallery .gc-pair{width:80vw;}#portfolioGallery .gc-artworks{height:330px;}#portfolioGallery .gc-row{gap:16px;padding-right:20px;}#portfolioGallery .gc-item figcaption>span:last-child{text-align:left;}}

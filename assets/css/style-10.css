@@ -1,0 +1,11 @@
+
+/* The stage sequence follows its visual reading direction. */
+.sf-route{flex-wrap:nowrap;}
+.sf-route>span:not(.sf-route-arrow){white-space:nowrap;}
+.sf-route-arrow{display:inline-block;flex:0 0 auto;line-height:1;}
+@media(max-width:700px){.sf-route{flex-direction:column;gap:16px;align-items:center;}.sf-route-arrow{transform:rotate(90deg);}}
+/* A proximity snap helps land near section headings without forcing a full-page step. */
+#caseView:has(.somnus-editorial){scroll-snap-type:y proximity;scroll-padding-top:175px;}
+#caseView .somnus-editorial .se-panel{scroll-snap-align:start;scroll-snap-stop:normal;scroll-margin-top:0;}
+@media(prefers-reduced-motion:reduce){#caseView:has(.somnus-editorial){scroll-snap-type:none;}}
+

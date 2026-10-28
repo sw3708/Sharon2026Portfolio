@@ -1,0 +1,8 @@
+
+#caseView.logo-case .la-research{display:grid;grid-template-columns:1fr .8fr;align-items:center;gap:6vw;padding:26px 0;border-block:1px solid var(--line);}
+#caseView.logo-case .la-research h3{font:500 17px/1.5 var(--font-ui);margin:0 0 16px;}
+#caseView.logo-case .la-research p{font:13px/1.75 var(--font-ui);color:var(--muted);margin:0 0 14px;max-width:590px;}
+#caseView.logo-case .la-research-label{display:block;font:10px/1.5 var(--font-ui);color:var(--faint);margin:22px 0 9px;}
+#caseView.logo-case .la-research .la-source-keywords{gap:5px 18px;}
+#caseView.logo-case .la-research .la-source-keywords li{font-size:11px;}
+@media(max-width:700px){#caseView.logo-case .la-research{grid-template-columns:1fr;gap:25px;}#caseView.logo-case .la-research>div:last-child{grid-row:1;}}

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<!-- Updated portfolio: Buildscape (Interactive Installation / Development),
+     Somnus full-screen video cover (slightly blurred; plays once per visit),
+     updated About note, no back stamp or wavy postmark, raised photo placeholder,
+     dot cursor with subtle ripples. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sharon Wang Liu — Portfolio</title>
+<meta name="portfolio-revision" content="October 20 — three featured covers, four-tile grid, slow Fall film, sculptural title">
+<script src="assets/js/script-01.js"></script>
+
+<!-- Fonts: Anton (display), Caveat (handwritten). UI text = Helvetica stack (system) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/style-01.css">
+<link rel="stylesheet" href="assets/css/style-02.css">
+<link rel="stylesheet" href="assets/css/style-03.css">
+<link rel="stylesheet" href="assets/css/style-04.css">
+<link rel="stylesheet" href="assets/css/style-05.css">
+<link rel="stylesheet" href="assets/css/style-06.css">
+<link rel="stylesheet" href="assets/css/style-07.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style-08.css">
+<link rel="stylesheet" href="assets/css/style-09.css">
+<link rel="stylesheet" href="assets/css/style-10.css">
+<style>
+/* New York ID: a light, teal visual system independent of Somnus. */
+#caseView.nyid-case{--bg:#f3fdfc;--ink:#013549;--muted:#446773;--faint:#587680;--accent:#01687d;--line:rgba(1,53,73,.17);--chip:#d8f2f1;--cs-paper:#f3fdfc;--cs-ink:#013549;--cs-body:#446773;--cs-faint:#587680;--cs-line:rgba(1,53,73,.17);--cs-dot:#a1c4c9;--font-ui:'Helvetica Neue',Helvetica,Arial,sans-serif;color:var(--ink);font-family:var(--font-ui);color-scheme:light;}
+#caseView.nyid-case .case-veil{background:radial-gradient(ellipse at 95% 8%,rgba(158,225,233,.24),transparent 50%),#f3fdfc;}
+#caseView.nyid-case .case-top-scrim{background:linear-gradient(#f3fdfc 64%,rgba(243,253,252,.96) 83%,transparent);}
+#caseView.nyid-case :is(h1,h2,h3){font-family:var(--font-ui);}
+#caseView.nyid-case .ni-panel .sn-panel-body{gap:28px;}
+#caseView.nyid-case .se-heading h2{font-size:clamp(31px,3.5vw,52px);font-weight:500;letter-spacing:-.05em;line-height:1.1;}
+#caseView.nyid-case .ni-intro .se-heading h2{font-size:clamp(52px,6.5vw,96px);font-weight:600;}
+#caseView.nyid-case .ni-lead{font-size:clamp(16px,1.6vw,22px);max-width:620px;}
+#caseView.nyid-case p{max-width:760px;line-height:1.75;}
+#caseView.nyid-case a{color:var(--ink);text-underline-offset:4px;}
+#caseView.nyid-case .sn-kicker{color:#01687d;}
+.ni-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px;align-items:start;}
+.ni-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;}
+.ni-note{padding-top:18px;border-top:1px solid var(--line);}
+#caseView.nyid-case .ni-note h3{font-size:20px;font-weight:500;line-height:1.25;margin-bottom:12px;}
+.ni-list{padding-left:18px;margin:0;}.ni-list li{font-size:14px;line-height:1.8;color:var(--muted);margin-bottom:10px;}
+.ni-figure{margin:0;min-width:0;}.ni-figure img{display:block;width:100%;height:auto;max-height:none;}.ni-figure figcaption{margin-top:13px;font-size:11px;line-height:1.6;color:var(--muted);}
+.ni-board{padding:24px;background:#fff;border:1px solid var(--line);}.ni-board figcaption{padding-top:12px;border-top:1px solid var(--line);}
+.ni-phones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;max-width:940px;width:100%;margin-inline:auto;align-items:start;}
+.ni-phone .se-expand{max-width:280px;margin-inline:auto;}.ni-phone img{border-radius:24px;}.ni-phone figcaption{text-align:center;}
+.ni-wire-set{padding:28px;background:#faf8f2;border:1px solid rgba(50,50,50,.15);}
+#caseView.nyid-case .ni-wire-set>h3{font:500 26px/1.3 'Caveat',cursive;color:#4c4a42;letter-spacing:.02em;margin:0 0 22px;}
+.ni-wire-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;align-items:start;}
+.ni-wireframe{max-width:270px;margin-inline:auto;background:#faf8f2;}
+.ni-wireframe img,.nyid-pencil-image{filter:url(#nyid-pencil);mix-blend-mode:multiply;}
+.ni-wire-grid figcaption{font:500 21px/1.4 'Caveat',cursive;color:#55524a;text-align:center;}
+.ni-alternate{border-top:1px solid var(--line);}.ni-alternate>summary{font-size:12px;line-height:1.7;padding:14px 0;cursor:pointer;color:var(--muted);}.ni-alternate>p{margin-bottom:20px;}
+.ni-demo{display:flex;justify-content:center;padding:32px;background:linear-gradient(135deg,#d8f3f3,#e8faf6);border:1px solid var(--line);}
+.ni-demo video{display:block;height:min(72vh,730px);width:auto;max-width:100%;aspect-ratio:392/866;object-fit:contain;background:#013549;border-radius:26px;}
+.ni-subheading{padding-top:25px;border-top:1px solid var(--line);}.ni-subheading h3{font-size:23px;font-weight:500;margin-bottom:10px;}
+.ni-palette{display:flex;flex-wrap:wrap;gap:18px;}.ni-palette span{display:flex;align-items:flex-end;min-width:130px;height:110px;padding:12px;background:var(--swatch);border:1px solid var(--line);font-size:11px;color:#013549;}.ni-palette span:nth-child(2){color:#fff;}
+#caseView.nyid-case .se-project-meta{grid-template-columns:1.2fr .8fr 1.2fr;}
+#caseView.nyid-case :is(.cs-close,.sn-slide-next,.study-mode-switch,.sn-slide-count){background:#f3fdfc;color:#013549;}
+#caseView.nyid-case .study-mode-switch{border:1px solid var(--line);border-radius:999px;}
+#caseView.nyid-case .study-mode-knob{background:#01687d;}
+#caseView.nyid-case .sn-action.primary{background:#013549;color:#f3fdfc;}
+.case.study-switch-case .nyid-complete .sn-slide-nav,.case.study-switch-case .nyid-complete .sn-slide-nav .cs-dots{height:min(62vh,500px);}
+.case.study-switch-case .nyid-complete .cs-dot{width:5px;height:5px;}
+body:has(#caseView.nyid-case.open) header.top{--h-ink:#013549;--h-muted:#446773;--h-icon:#f3fdfc;}
+body:has(#caseView.nyid-case.open) .se-image-viewer{--bg:#f3fdfc;--ink:#013549;--line:rgba(1,53,73,.2);--font-ui:'Helvetica Neue',Helvetica,Arial,sans-serif;color-scheme:light;}
+body:has(#caseView.nyid-case.open) .se-image-viewer .nyid-pencil-image{background:#faf8f2;}
+@media(max-width:800px){.ni-benefits{grid-template-columns:1fr;gap:22px;}.ni-phones,.ni-wire-grid{gap:18px;}.ni-pair{gap:26px;}}
+@media(max-width:600px){.ni-pair{grid-template-columns:1fr;}.ni-board{padding:14px;}.ni-phones{grid-template-columns:1fr;gap:34px;}.ni-phone .se-expand{max-width:290px;}.ni-wire-grid{grid-template-columns:1fr;gap:30px;}.ni-wire-set{padding:20px;}.ni-wireframe{max-width:260px;}.ni-demo{padding:18px;}.ni-demo video{height:auto;width:min(100%,300px);max-height:none;}#caseView.nyid-case .se-project-meta{grid-template-columns:1fr;}#caseView.nyid-case .ni-intro .se-heading h2{font-size:54px;}}
+
+</style>
+
+<link rel="stylesheet" href="assets/css/style-11.css">
+<link rel="stylesheet" href="assets/css/style-12.css">
+<link rel="stylesheet" href="assets/css/style-13.css">
+<link rel="stylesheet" href="assets/css/style-14.css">
+<link rel="stylesheet" href="assets/css/style-15.css">
+<link rel="stylesheet" href="assets/css/style-16.css">
+<link rel="stylesheet" href="assets/css/style-17.css">
+<link rel="stylesheet" href="assets/css/style-18.css">
+<link rel="stylesheet" href="assets/css/style-19.css">
+<link rel="stylesheet" href="assets/css/style-20.css">
+<style>
+/* Floating brand marks and the earlier editorial reference layout. */
+#caseView.logo-case .la-pdf-identity{background:transparent;color:var(--ink);padding:20px 0;min-height:250px;}
+#caseView.logo-case .la-pdf-identity .la-figure{width:78%;max-width:350px;}
+#caseView.logo-case .la-pdf-identity:not(.la-identity-dark) img,.la-transparent-logo{filter:url(#la-white-cutout);}
+#caseView.logo-case .la-pdf-date{color:var(--faint);font-size:10px;letter-spacing:.06em;}
+#caseView.logo-case .la-identity-dark .la-figure{width:100%;max-width:410px;}
+#caseView.logo-case .la-identity-dark img{mix-blend-mode:screen;}
+#caseView.logo-case .la-integrated-direction{grid-template-columns:.9fr 1.1fr;gap:7vw;align-items:center;margin:20px 0 12px;}
+#caseView.logo-case .la-integrated-direction>div:first-child{max-width:420px;}
+#caseView.logo-case .la-integrated-direction .la-keywords{grid-template-columns:1fr 1fr;gap:0 24px;}
+#caseView.logo-case .la-integrated-direction .la-keywords li{font-size:clamp(16px,1.8vw,23px);padding:11px 0;}
+#caseView.logo-case .la-complete .la-frames{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;}
+@media(max-width:700px){#caseView.logo-case .la-pdf-identity{min-height:200px;padding:12px 0;}#caseView.logo-case .la-pdf-intro{gap:18px;}#caseView.logo-case .la-integrated-direction{grid-template-columns:1fr;gap:28px;}#caseView.logo-case .la-integrated-direction>div:first-child{width:100%;max-width:360px;margin:auto;}#caseView.logo-case .la-integrated-direction .la-keywords li{font-size:18px;}#caseView.logo-case .la-complete .la-frames{grid-template-columns:1fr;gap:22px;}}
+</style>
+<link rel="stylesheet" href="assets/css/style-21.css">
+<link rel="stylesheet" href="assets/css/style-22.css">
+<link rel="stylesheet" href="assets/css/style-23.css">
+<link rel="stylesheet" href="assets/css/style-24.css">
+<link rel="stylesheet" href="assets/css/style-25.css">
+</head>
+<body>
+<video class="media-source" id="buildscapeMediaSource" muted playsinline preload="none" aria-hidden="true" src="assets/videos/40a1e50ecf089bee.mp4"></video>
+<video class="media-source" id="logosMediaSource" muted playsinline preload="none" aria-hidden="true" src="assets/videos/ed4de47c6fa2d1c3.mp4"></video>
+
+
+
+<div class="hero-intro-veil" aria-hidden="true"></div>
+
+<!-- ==================== FIXED HEADER ==================== -->
+<header class="top">
+  <nav aria-label="Main">
+    <ul>
+      <li><a href="#home" class="active">Home</a></li>
+      <li><a href="#work" data-work-mode-link>Work</a></li>
+      <li><a href="#about">About Me</a></li>
+    </ul>
+  </nav>
+
+  <div class="site-name">SHARON WANG LIU</div>
+
+  <button class="theme-switch mode-switch" id="themeToggle" role="switch" aria-checked="false"
+          aria-label="Sandbox mode" title="Switch to Sandbox">
+    <span class="mode-label mode-professional" title="Professional" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6V4h8v2"/><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 11c5 4 13 4 18 0M10 12h4v3h-4z"/></svg></span>
+    <span class="mode-label mode-sandbox" title="Sandbox" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="6.5" r="3.5"/><rect x="14" y="3" width="7" height="7" rx="1" transform="rotate(12 17.5 6.5)"/><path d="m5 13-4 8h8z"/><path d="m17 13 4 4-4 4-4-4z"/></svg></span>
+  </button>
+</header>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero hero-with-film" id="home">
+<canvas id="heroGrain" aria-hidden="true"></canvas>
+<div class="hero-film-layer" aria-hidden="true"><video id="heroBackgroundVideo" autoplay muted loop playsinline preload="auto" poster="assets/images/7deef192f8bbd7d3.jpg" src="assets/videos/855232195c824e66.mp4" tabindex="-1" aria-hidden="true"></video></div>
+
+  
+  <p class="hero-quote">
+    <span class="q-line">Merging visual design &amp;</span>
+    <span class="q-line q-indent">creative technology.</span>
+  </p>
+
+  <div class="hero-bottom">
+    <button class="scroll-btn" id="scrollBtn" aria-label="Scroll down">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v16M5 13l7 7 7-7"/>
+      </svg>
+    </button>
+
+    <div class="hero-right">
+      <div class="work-filters" id="work-filters"><p class="priority-hint" id="workPriorityHint">Reorder disciplines to prioritize the projects below. Drag, or focus a pill and use the arrow keys.</p><div class="filter-options" id="workPriorityRow" role="group" aria-label="Project priorities, highest first"><button type="button" class="priority-pill" data-work-priority="motion" aria-describedby="workPriorityHint" title="Drag to reorder, or use arrow keys when focused"><span class="priority-handle" aria-hidden="true">⠿</span><span>Motion</span></button><button type="button" class="priority-pill" data-work-priority="ui-ux" aria-describedby="workPriorityHint" title="Drag to reorder, or use arrow keys when focused"><span class="priority-handle" aria-hidden="true">⠿</span><span>UI/UX</span></button><button type="button" class="priority-pill" data-work-priority="interactive" aria-describedby="workPriorityHint" title="Drag to reorder, or use arrow keys when focused"><span class="priority-handle" aria-hidden="true">⠿</span><span>Interactive</span></button><button type="button" class="priority-pill" data-work-priority="3d" aria-describedby="workPriorityHint" title="Drag to reorder, or use arrow keys when focused"><span class="priority-handle" aria-hidden="true">⠿</span><span>3D</span></button><button type="button" class="priority-pill" data-work-priority="vibe-coding" aria-describedby="workPriorityHint" title="Drag to reorder, or use arrow keys when focused"><span class="priority-handle" aria-hidden="true">⠿</span><span>Vibe Coding</span></button></div><p class="work-order-status" id="workOrderStatus" role="status" aria-live="polite"></p></div>
+      <h1 class="hero-title">
+        <span class="line"><span data-outline-text="Sharon’s"><span class="hero-title-ink">Sharon&rsquo;s</span></span></span>
+        <span class="line"><span data-outline-text="Portfolio"><span class="hero-title-ink">Portfolio</span></span></span>
+      </h1>
+    </div>
+  </div>
+
+  <div class="socials">
+    <a href="mailto:sharonwl3708@gmail.com">Email</a>
+    <a href="mailto:sharonwl3708@gmail.com?subject=Resume%20request" title="Request my resume by email">Resume</a>
+    <a href="https://www.linkedin.com/in/sharon-wang-liu-498948309/" target="_blank" rel="noopener">Linkedin</a>
+  </div>
+</section>
+
+
+
+<!-- ==================== WORK — CONTINUOUS PAGE SCROLL ==================== -->
+<section class="work" id="work">
+  <div class="slides" id="slides">
+
+    <article class="slide" data-project="somnus" tabindex="0" role="button"
+             aria-label="Open Somnus case study">
+      <div class="bg" style="background:linear-gradient(135deg,#141428,#3b3b6e);">
+        <img src="assets/images/604ec42a30340165.webp" alt="Somnus — a descent into sleep">
+      </div>
+      <div class="slide-content">
+        <p class="kicker">Interactive &middot; UI/UX &middot; Motion</p>
+        <h3 class="slide-title">somnus</h3>
+        <p class="slide-script">a descent into sleep</p>
+        <p class="slide-hint">View project &rarr;</p>
+      </div>
+      <span class="year">SOMNUS &copy; SHARON WANG LIU</span>
+    </article>
+
+    <article class="slide" data-project="nyid" tabindex="0" role="button"
+             aria-label="Open NY ID case study">
+      <div class="bg" style="background:linear-gradient(135deg,#0d3549,#9ee1e9);">
+        <img src="assets/images/d364bbcd4ebfc89b.webp" alt="NY ID — digital identification app" loading="lazy">
+      </div>
+      <div class="slide-content">
+        <p class="kicker">UI/UX</p>
+        <h3 class="slide-title">ny id</h3>
+        <p class="slide-script">everything is on your phone</p>
+        <p class="slide-hint">View project &rarr;</p>
+      </div>
+      <span class="year">NY ID &copy; SHARON WANG LIU</span>
+    </article>
+
+    <article class="slide" data-project="buildscape" tabindex="0" role="button"
+             aria-label="Open Buildscape case study">
+      <div class="bg" style="background:linear-gradient(135deg,#3a4034,#7c8b6f);">
+        <img src="assets/images/ffe19d3dc5e6ee64.webp" alt="Buildscape interactive installation at an exhibition" loading="lazy">
+      </div>
+      <div class="slide-content">
+        <p class="kicker">Vibe Coding &middot; Interactive</p>
+        <h3 class="slide-title">Buildscape</h3>
+        <p class="slide-script">built to be explored</p>
+        <p class="slide-hint">View project &rarr;</p>
+      </div>
+      <span class="year">BUILDSCAPE &copy; SHARON WANG LIU</span>
+    </article>
+
+<article class="slide" data-project="puma-kiosk" tabindex="0" role="button" aria-label="Open Puma Kiosk"><div class="bg"><img src="assets/images/d7dbcec633b9225d.svg" alt="Puma Kiosk: Catalog centered between personalized recommendations and the cart" loading="lazy"></div><div class="slide-content"><p class="kicker">UI/UX</p><h3 class="slide-title">Puma Kiosk</h3><p class="slide-hint">View project →</p></div></article>
+<article class="slide" data-project="fall-into-me" tabindex="0" role="button" aria-label="Open Fall Into Me"><div class="bg"><img src="assets/images/9b8f8a4958af683e.jpg" alt="Fall Into Me: a luminous iris surrounding a black pupil" loading="lazy"></div><div class="slide-content"><p class="kicker">Vibe Coding · Motion · Interactive</p><h3 class="slide-title">Fall Into Me</h3><p class="slide-hint">View project →</p></div></article>
+<article class="slide" data-project="logo-animations" tabindex="0" role="button" aria-label="Open Logo Animations"><div class="bg"><img src="assets/images/4e0c0e1667302d86.webp" alt="Logo Animations title cover" loading="lazy"></div><div class="slide-content"><p class="kicker">Motion</p><h3 class="slide-title">Logo Animations</h3><p class="slide-hint">View project →</p></div></article>
+
+
+
+  </div>
+
+
+</section>
+
+<section class="sandbox-collage" id="sandboxWork" aria-labelledby="sandbox-build-title">
+ <header class="pg-heading"><div><p class="pg-kicker">Sandbox / Motion, type & form</p><h2 id="sandbox-build-title">Curiosity, in motion.</h2><p>A collection of little experiments.<br>Tap any piece to take a closer look.</p></div><button type="button" class="pg-motion-toggle" id="pgMotionToggle" aria-pressed="false"><svg class="pg-pause-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zm5 0h3v10H7z"/></svg><svg class="pg-play-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l8 5-8 5z"/></svg><span>Pause motion</span></button></header>
+<button type="button" class="sandbox-fall" id="sandboxFall" data-sandbox-fall aria-haspopup="dialog" aria-label="Play Fall Into Me experiment"><span class="bg"><img src="assets/images/9b8f8a4958af683e.jpg" alt="A luminous iris surrounding a dark pupil" loading="lazy"></span><span class="sf-feature-kicker">Featured experiment · Interactive · Motion · Vibe coding</span><h3>Fall Into Me</h3><span class="sf-feature-tagline">a pull you can feel.</span><span class="sf-feature-action">Play experiment ↗</span></button><div class="sf-experiment-context"><p>An interactive experiment in attraction: scroll through an eye, then steer a gravity well that pulls surrounding forms toward you.</p><div class="sf-experiment-notes"><div><h4>Contribution &amp; implementation</h4><p>Concept and interaction direction, developed through AI-assisted prototyping. Built with HTML, JavaScript, Canvas, WebGL and Web Audio.</p></div><div><h4>Interaction decision</h4><p>Resistance at the start slows the descent into the eye. Cursor-driven gravity, responsive particles and sound carry the feeling of attraction into the space beyond it.</p></div></div></div>
+ <div class="pg-wall" aria-label="Motion experiments"><button type="button" class="pg-tile pg-wide" data-pg-id="pg09" data-pg-title="2D shapes" aria-label="Watch 2D shapes" aria-haspopup="dialog" style="--pg-ratio:1760/880"><span class="pg-art"><img src="assets/images/dce645759eaaf024.webp" width="1760" height="880" alt="2D shapes motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>2D shapes</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg17" data-pg-title="Everyday 05" aria-label="Watch Everyday 05" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/caf1639a32ec8ab4.webp" width="1080" height="1920" alt="Everyday 05 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 05</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg08" data-pg-title="Blobs" aria-label="Watch Blobs" aria-haspopup="dialog" style="--pg-ratio:1920/1920"><span class="pg-art"><img src="assets/images/f4aa10c192080ac0.webp" width="1920" height="1920" alt="Blobs motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Blobs</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg03" data-pg-title="Everyday 12" aria-label="Watch Everyday 12" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/a0d20774096a498f.webp" width="1080" height="1920" alt="Everyday 12 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 12</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile pg-wide" data-pg-id="pg02" data-pg-title="G / Letter study" aria-label="Watch G / Letter study" aria-haspopup="dialog" style="--pg-ratio:1760/880"><span class="pg-art"><img src="assets/images/04eb6016947954f0.webp" width="1760" height="880" alt="G / Letter study motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>G / Letter study</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg14" data-pg-title="Everyday 02" aria-label="Watch Everyday 02" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/977f56932d55d54c.webp" width="1080" height="1920" alt="Everyday 02 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 02</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile pg-wide" data-pg-id="pg01" data-pg-title="Scaling blocks" aria-label="Watch Scaling blocks" aria-haspopup="dialog" style="--pg-ratio:1760/880"><span class="pg-art"><img src="assets/images/52a81520d8e6bb3f.webp" width="1760" height="880" alt="Scaling blocks motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Scaling blocks</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg07" data-pg-title="Everyday 08" aria-label="Watch Everyday 08" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/7303dfc2edbdcb53.webp" width="1080" height="1920" alt="Everyday 08 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 08</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg11" data-pg-title="G / Halftone" aria-label="Watch G / Halftone" aria-haspopup="dialog" style="--pg-ratio:1080/1080"><span class="pg-art"><img src="assets/images/b8842fe14a48b197.webp" width="1080" height="1080" alt="G / Halftone motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>G / Halftone</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg16" data-pg-title="Everyday 01" aria-label="Watch Everyday 01" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/b34b1d98e8ae533a.webp" width="1080" height="1920" alt="Everyday 01 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 01</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile pg-wide" data-pg-id="pg15" data-pg-title="Slider &amp; arrow" aria-label="Watch Slider &amp; arrow" aria-haspopup="dialog" style="--pg-ratio:1760/880"><span class="pg-art"><img src="assets/images/a0e8a45d9a32d1fb.webp" width="1760" height="880" alt="Slider &amp; arrow motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Slider &amp; arrow</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg19" data-pg-title="Everyday 14" aria-label="Watch Everyday 14" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/b1b25a9769889900.webp" width="1080" height="1920" alt="Everyday 14 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 14</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile pg-wide" data-pg-id="pg12" data-pg-title="Pattern study" aria-label="Watch Pattern study" aria-haspopup="dialog" style="--pg-ratio:1920/1080"><span class="pg-art"><img src="assets/images/0bbd83d98b0904f8.webp" width="1920" height="1080" alt="Pattern study motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Pattern study</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg05" data-pg-title="Everyday 06" aria-label="Watch Everyday 06" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/c3dae651de785582.webp" width="1080" height="1920" alt="Everyday 06 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 06</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg10" data-pg-title="Everyday 07" aria-label="Watch Everyday 07" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/7a8e864fa9e11a19.webp" width="1080" height="1920" alt="Everyday 07 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 07</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg06" data-pg-title="Everyday 20" aria-label="Watch Everyday 20" aria-haspopup="dialog" style="--pg-ratio:1080/1928"><span class="pg-art"><img src="assets/images/6d359a901450365f.webp" width="1080" height="1928" alt="Everyday 20 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 20</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile pg-wide" data-pg-id="pg04" data-pg-title="Spline" aria-label="Watch Spline" aria-haspopup="dialog" style="--pg-ratio:1760/880"><span class="pg-art"><img src="assets/images/3bb88a6e60e0e52f.jpg" width="1760" height="880" alt="Spline motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Spline</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg13" data-pg-title="Everyday 10" aria-label="Watch Everyday 10" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/4dcf56b50bf1325e.jpg" width="1080" height="1920" alt="Everyday 10 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 10</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button><button type="button" class="pg-tile" data-pg-id="pg18" data-pg-title="Everyday 17" aria-label="Watch Everyday 17" aria-haspopup="dialog" style="--pg-ratio:1080/1920"><span class="pg-art"><img src="assets/images/d17c52068ed591eb.webp" width="1080" height="1920" alt="Everyday 17 motion study" loading="lazy" decoding="async"><video muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video></span><span class="pg-caption"><span>Everyday 17</span><span class="pg-open-icon" aria-hidden="true">↗</span></span></button></div><footer class="pg-footer"><p>A little room to play.</p><button type="button" class="sandbox-return" id="sandboxReturn">View the professional portfolio ↗</button></footer></section>
+
+<section id="portfolioGallery" class="inline-portfolio-gallery" aria-labelledby="portfolioGalleryTitle">
+<img class="gallery-future-background" src="assets/images/2dffdd85241f2070.webp" alt="" loading="lazy">
+ <div class="gallery-header"><div><p class="gallery-eyebrow">Experiments / Visual explorations</p><h2 id="portfolioGalleryTitle">Gallery.</h2><p class="gallery-future-note">A collection in progress. More coming soon.</p></div></div>
+ <div class="gallery-grid" id="portfolioGalleryGrid"></div>
+ <details id="all-projects" class="inline-project-archive"><summary>All projects</summary><div class="gallery-grid" id="portfolioArchiveGrid"></div></details>
+</section>
+
+<!-- ==================== ABOUT — ENVELOPE CENTER + CORNER POLAROIDS ==================== -->
+<section class="about" id="about">
+
+  <!-- upper-left cluster -->
+  <figure class="polaroid pol-1">
+    <div class="ph"><img src="assets/images/2e095c391fb8baa2.webp" alt="Snowboarding on a snowy mountain" draggable="false"
+         onerror="this.style.display='none'"></div>
+    <figcaption>Snow Day</figcaption>
+  </figure>
+
+  <figure class="polaroid pol-2">
+    <div class="ph"><img src="assets/images/cd3c5dd641e3fc18.webp" alt="Crochet duck with daisies" draggable="false"
+         onerror="this.style.display='none'"></div>
+    <figcaption>Quack</figcaption>
+  </figure>
+
+  <!-- bottom-right cluster -->
+  <figure class="polaroid pol-3">
+    <div class="ph"><img src="assets/images/3878182c5b4eca4d.webp" alt="My dog smiling" draggable="false"
+         onerror="this.style.display='none'"></div>
+    <figcaption>Good Boy</figcaption>
+  </figure>
+
+  <figure class="polaroid pol-4">
+    <div class="ph"><img src="assets/images/6efad181c8231024.webp" alt="A photo of me in a kimono" draggable="false"
+         onerror="this.style.display='none'"></div>
+    <figcaption>That's Me</figcaption>
+  </figure>
+
+  <figure class="polaroid pol-5"><div class="ph"><img src="assets/images/9998fe932d6a69fa.webp" alt="A nature hike beneath colorful autumn leaves" draggable="false"></div><figcaption>Nature Hike</figcaption></figure>
+
+  <div class="about-wrap">
+
+    <main class="scene">
+      <div class="tilt">
+        <div class="gshadow" aria-hidden="true"></div>
+
+        <div class="card" id="card" role="button" tabindex="0" aria-pressed="false"
+             aria-label="Flip the envelope over">
+          <div class="lift" id="lift">
+
+            <!-- FRONT -->
+            <div class="face front" id="faceFront">
+              <div class="env-in">
+
+                <div class="stampbox">
+                  <div class="stamp-slot"></div>
+                  <svg class="postmark" viewBox="0 0 220 100" aria-hidden="true">
+                    <path class="pm-line" d="M0,28 q10,-8 20,0 t20,0 t20,0 t20,0 t20,0"/>
+                    <path class="pm-line" d="M0,40 q10,-8 20,0 t20,0 t20,0 t20,0 t20,0"/>
+                    <path class="pm-line" d="M0,52 q10,-8 20,0 t20,0 t20,0 t20,0 t20,0"/>
+                    <path class="pm-line" d="M0,64 q10,-8 20,0 t20,0 t20,0 t20,0 t20,0"/>
+                    <circle class="pm-ring" cx="150" cy="50" r="40" stroke-width="2"/>
+                    <circle class="pm-ring" cx="150" cy="50" r="27" stroke-width="1"/>
+                    <path id="pmPath" fill="none"
+                          d="M150,50 m-33.5,0 a33.5,33.5 0 1,1 67,0 a33.5,33.5 0 1,1 -67,0"/>
+                    <text class="pm-text">
+                      <textPath href="#pmPath" id="pmText" textLength="206" lengthAdjust="spacing">ABOUT ME</textPath>
+                    </text>
+                    <text class="pm-big" x="150" y="56" text-anchor="middle">HELLO</text>
+                  </svg>
+                </div>
+
+                <div class="addr">
+                  <p class="to">From &mdash;</p>
+                  <h1 class="name" data-name>Sharon</h1>
+                  <p class="rule">Learn a little more about me</p>
+                  <p class="rule">Tap / flip to open <span class="arr" aria-hidden="true">&rarr;</span></p>
+                  <p class="rule blank">&nbsp;</p>
+                </div>
+
+                <div class="bars" id="bars" aria-hidden="true"></div>
+              </div>
+
+              <div class="flip-badge" aria-hidden="true"><span class="flip-inner"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg></span><span class="flip-outer"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg></span></div>
+            </div>
+
+            <!-- BACK -->
+            <div class="face back" id="faceBack" aria-hidden="true">
+
+              <p class="bk-head">A little more about me</p>
+
+
+              <div class="bk-divider" aria-hidden="true"></div>
+
+              <div class="bk-note">
+                <p class="bk-greeting">Hi there,</p>
+                <p>When I'm not designing, I like going on hikes, snowboarding, crocheting, biking, binge-watching, and playing with my dog.</p>
+              </div>
+
+              <svg class="smiley" viewBox="0 0 40 40" aria-hidden="true">
+                <circle cx="13" cy="15" r="2" fill="currentColor"/>
+                <circle cx="27" cy="15" r="2" fill="currentColor"/>
+                <path d="M11,23 Q20,32 29,23" fill="none" stroke="currentColor"
+                      stroke-width="2.6" stroke-linecap="round"/>
+              </svg>
+
+              <!-- photo slot -->
+              <figure class="bk-photo">
+                <div class="bp-frame">
+                  <div class="bp-fallback">Photo of me<br>&mdash; coming soon &mdash;</div>
+                  <img src="assets/images/6efad181c8231024.webp" alt="A photo of me in a kimono"
+                       onerror="this.style.display='none'">
+                </div>
+                <figcaption class="bp-caption" data-fullname>Sharon Wang Liu</figcaption>
+              </figure>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ==================== CASE STUDY OVERLAY ==================== -->
+<div class="case" id="caseView" aria-hidden="true">
+  <div class="case-veil" aria-hidden="true"></div>
+  <div class="case-top-scrim" aria-hidden="true"></div>
+
+  <div class="case-study" id="caseStudy">
+    <div class="case-sticky">
+      <div class="case-ui">
+
+        <div class="visual-field" id="caseField">
+          <div class="image-stack" id="caseStack"></div>
+        </div>
+
+        <div class="text-stage" id="caseText"></div>
+
+        <nav class="cs-nav" aria-label="Case study sections">
+          <div class="cs-line"></div>
+          <div class="cs-fill" id="caseFill"></div>
+          <div class="cs-dots" id="caseDots"></div>
+        </nav>
+
+        <button class="cs-next" id="caseNext" aria-label="Next section">
+          <svg viewBox="0 0 24 24"><path d="M12 4V20"/><path d="M6 14L12 20L18 14"/></svg>
+          <span class="cs-next-label">See next project</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <button class="cs-close" id="caseClose" aria-label="Close case study">
+    <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
+  </button>
+</div>
+
+
+
+
+<dialog id="portfolioProject" class="portfolio-dialog project-preview-dialog" aria-labelledby="portfolioProjectTitle">
+ <button type="button" id="closePortfolioProject" class="portfolio-dialog-close" aria-label="Close project">×</button><img id="portfolioProjectCover" class="project-preview-cover" alt=""><video id="fallProjectVideo" hidden controls muted playsinline preload="none" poster="assets/images/9b8f8a4958af683e.jpg" src="assets/videos/34cc0c54f6bd3107.mp4" aria-label="Fall Into Me: zooming through the pupil into darkness"></video><video id="portfolioMotionVideo" hidden controls muted playsinline preload="none" aria-label="Logo Animations"></video><div class="project-preview-copy"><p id="portfolioProjectCategories" class="gallery-eyebrow"></p><h2 id="portfolioProjectTitle"></h2><p id="portfolioProjectDescription"></p><div id="projectCaseOutline"></div><button type="button" id="projectBrowseGallery">Back to work ←</button></div>
+</dialog>
+
+<dialog id="polaroidViewer" class="photo-viewer" aria-labelledby="polaroidViewerCaption">
+  <button class="photo-viewer-close" type="button" aria-label="Close photo">&times;</button>
+  <figure>
+    <img id="polaroidViewerImage" alt="">
+    <figcaption id="polaroidViewerCaption"></figcaption>
+  </figure>
+</dialog>
+
+<script src="assets/js/script-02.js"></script>
+
+<script src="assets/js/script-03.js"></script>
+
+<script src="assets/js/script-04.js"></script>
+
+<script src="assets/js/script-05.js"></script>
+<script src="assets/js/script-06.js"></script>
+<script src="assets/js/script-07.js"></script>
+<script src="assets/js/script-08.js"></script>
+<script src="assets/js/script-09.js"></script>
+<script src="assets/js/script-10.js"></script>
+<script src="assets/js/script-11.js"></script>
+<script src="assets/js/script-12.js"></script>
+<script id="sandbox-collage-script" src="assets/js/script-13.js"></script>
+<script src="assets/js/script-14.js"></script>
+</body>
+</html>

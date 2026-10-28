@@ -1,0 +1,16 @@
+
+/* Concise context and decision notes in Somnus condensed only. */
+.somnus-editorial .se-project-meta{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:20px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.somnus-editorial .se-project-meta dt,.somnus-editorial .se-mini-label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;}
+.somnus-editorial .se-project-meta dd{font-size:12px;line-height:1.6;}
+.somnus-editorial .se-scope{font-size:12px;margin-top:-16px;}
+.somnus-editorial .se-scope strong,.somnus-editorial .se-decision strong{font-weight:500;color:var(--ink);margin-right:12px;}
+.somnus-editorial .se-decision{font-size:13px;line-height:1.7;max-width:760px;border-top:1px solid var(--line);padding-top:18px;}
+.somnus-editorial .se-reference-table{text-align:left;table-layout:fixed;}
+.somnus-editorial .se-reference-table th,.somnus-editorial .se-reference-table td{text-align:left;vertical-align:top;font-size:12px;line-height:1.6;padding:17px 15px;}
+.somnus-editorial .se-reference-table thead th{font-size:10px;color:var(--muted);}
+.somnus-editorial .se-reference-table caption{position:static;width:auto;height:auto;margin:0;padding:0 0 14px;overflow:visible;clip-path:none;white-space:normal;text-align:left;font-size:11px;color:var(--muted);}
+.somnus-editorial .se-outcome{display:grid;grid-template-columns:1fr 1fr;gap:35px;padding-top:22px;border-top:1px solid var(--line);}
+.somnus-editorial .se-outcome h3{font-size:14px;font-weight:500;margin-bottom:8px;}
+.somnus-editorial .se-outcome p{font-size:13px;max-width:400px;}
+@media(max-width:700px){.somnus-editorial .se-project-meta{grid-template-columns:1fr;gap:14px;}.somnus-editorial .se-project-meta>div{display:grid;grid-template-columns:85px 1fr;gap:12px;}.somnus-editorial .se-project-meta dt{margin:3px 0 0;}.somnus-editorial .se-outcome{grid-template-columns:1fr;gap:24px;}.somnus-editorial .se-reference-table{min-width:480px;}.somnus-editorial .se-scope strong,.somnus-editorial .se-decision strong{display:block;margin:0 0 4px;}}

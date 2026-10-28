@@ -1,0 +1,8 @@
+
+/* Shared icon-only reading mode control for Somnus and New York ID. */
+#caseView.case.study-switch-case .study-mode-switch{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;width:88px;height:44px;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;}
+#caseView .study-mode-switch .study-mode-label{display:flex;align-items:center;justify-content:center;min-width:0;padding:0;border-radius:999px;color:var(--muted);transition:background .2s,color .2s;}
+#caseView .study-mode-switch .study-mode-label.selected{background:var(--ink);color:var(--bg);}
+#caseView .study-mode-switch svg{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+@media(max-width:700px){#caseView.case.study-switch-case .study-mode-switch{width:84px;height:44px;}}
+@media(prefers-reduced-motion:reduce){#caseView .study-mode-switch .study-mode-label{transition:none;}}

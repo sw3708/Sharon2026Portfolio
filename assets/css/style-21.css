@@ -1,0 +1,8 @@
+
+/* Distinct research subsections within each full-study brand chapter. */
+#caseView.logo-case .la-subsection{width:100%;min-width:0;}
+#caseView.logo-case .la-subsection-title{font:500 16px/1.5 var(--font-ui);letter-spacing:-.015em;margin:0 0 24px;}
+#caseView.logo-case .la-subsection+.la-subsection{border-top:1px solid var(--line);padding-top:38px;margin-top:12px;}
+#caseView.logo-case .la-subsection .la-integrated-direction{margin-top:0;}
+#caseView.logo-case .la-subsection .la-keyword-block h4{font:500 15px/1.5 var(--font-ui);margin:0 0 22px;}
+@media(max-width:700px){#caseView.logo-case .la-subsection+.la-subsection{padding-top:28px;margin-top:8px;}#caseView.logo-case .la-subsection-title{margin-bottom:20px;}}

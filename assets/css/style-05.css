@@ -1,0 +1,4 @@
+
+/* Keep curator controls above the display letters, including their animated overflow. */
+.hero-with-film .hero-title{position:relative;z-index:1;}
+.hero-with-film .hero-right .work-filters{position:relative;z-index:2;isolation:isolate;}

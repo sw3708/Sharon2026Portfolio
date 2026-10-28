@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gravity — Event Horizon</title>
+<style>
+  :root {
+    --copper: #BF7648;
+    --umber: #694F2F;
+    --lilac: #CCB7FF;
+    --slate: #426176;
+    --ink: #ece6da;
+    --dim: #9e9487;
+    --bg: #000000;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+  body { overscroll-behavior: none; }
+
+  /* The scene pins while you scroll through it; the last stretch of scroll
+     turns gravity "down" so the liquid drains into the next section. */
+  .well { position: fixed; inset: 0; height: 100vh; }
+  .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; cursor: none; touch-action: none; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* depth of field: the scene goes soft toward the corners. Two stacked layers so the blur ramps up
+     gradually — a light blur from mid-way out, a heavier one right in the corners. */
+  .dof { position: absolute; inset: 0; pointer-events: none; }
+  .dof.near { backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px);
+              -webkit-mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, transparent 55%, #000 100%);
+                      mask-image: radial-gradient(ellipse 75% 75% at 50% 50%, transparent 55%, #000 100%); }
+  .dof.far  { backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+              -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 72%, #000 115%);
+                      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 72%, #000 115%); }
+
+  /* static film grain over everything, text included: a tiny SVG noise tile */
+  .stage.live .grain { opacity: calc(0.028 * var(--ui, 1)); }   /* a little quieter once you've entered */
+  .grain { position: absolute; inset: 0; pointer-events: none; opacity: calc(0.04 * var(--ui, 1)); transition: opacity 1.2s;   /* fades out with the scene at the end */ mix-blend-mode: screen;
+           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+           }
+
+  .intro { position: absolute; inset: 0; display: grid; place-content: center; gap: 0.6em; padding: 0 16px;
+           pointer-events: none; opacity: var(--ui, 1); text-align: center; transition: opacity 1.6s ease;
+           background: rgba(0, 0, 0, 0.25);   /* scrim so the title sits on the scene */
+           font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; line-height: 2.2; color: var(--dim); }
+  .intro.gone { opacity: 0; }
+  .intro h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: clamp(36px, 5vw, 76px);
+             letter-spacing: -0.045em; line-height: 1; text-transform: none; color: var(--ink); margin-bottom: 0.45em; }
+  .intro .dot { margin: 0 0.9em; }
+  /* a slow, barely-there breath — opacity only, nothing moves */
+  .intro > * { animation: breathe 2s ease-in-out infinite; }   /* one full breath every 2s */
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+  @media (prefers-reduced-motion: reduce) { .intro > * { animation: none; } }
+
+  .next { position: relative; min-height: 100vh; display: grid; place-items: center; background: linear-gradient(var(--bg), #1a2731 55%, var(--slate)); }
+  .next p { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+
+  @media (max-width: 600px) {
+    .intro { font-size: 8px; }
+  }
+</style>
+<script>addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({type:"fall:escape"},"*");}},true);</script></head>
+<body>
+
+<section class="well" id="well">
+  <div class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <div class="dof near"></div>
+    <div class="dof far"></div>
+    <div class="intro" id="intro">
+      <h1>You've reached the mind.</h1>
+      <p>Hover to absorb matter<span class="dot">•</span>1-5 to change gravity levels</p>
+      <p>M to mute</p>
+    </div>
+    <div class="grain"></div>
+  </div>
+</section>
+
+
+<script>
+(() => {
+  const N = 54;                         // liquid droplets (must match shader)
+  const canvas = document.getElementById('gl');
+  const stage = document.getElementById('stage');
+  const well = document.getElementById('well');
+  const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+  if (!gl) { stage.innerHTML = '<p style="padding:24px">WebGL is required.</p>'; return; }
+
+  const vert = `attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }`;
+
+  const frag = `
+precision highp float;
+#define N ${N}
+uniform vec2  R;        // resolution
+uniform float T;        // time
+uniform vec2  M;        // gravity well position (scene space)
+uniform float MASS;     // black hole size
+uniform vec3  SH;       // shockwave: xy origin, z radius
+uniform float SHA;      // shockwave amplitude
+uniform float FALL;     // 0..1 scroll exit
+uniform vec4  B[N];     // droplets: xy pos, z radius, w hue (−1..1)
+uniform vec3  CUR;      // cursor: xy pos, z warp strength
+uniform float FADE;     // 0..1 fade to black (end of the loop)
+uniform vec2  SW;       // accumulated sky swirl: x = turn, y = inflow (both grow while the hole is strong)
+uniform float LIVE;     // 0 on the title screen → 1 once the simulation is entered (quiets the grain a little)
+uniform float FEED;     // 0..1+ how hard the hole is eating right now (drives the colour around it)
+
+// palette
+const vec3 COPPER = vec3(.749, .463, .282);   // #BF7648
+const vec3 UMBER  = vec3(.412, .310, .184);   // #694F2F
+const vec3 LILAC  = vec3(.800, .718, 1.);     // #CCB7FF
+const vec3 SLATE  = vec3(.259, .380, .463);   // #426176
+const vec3 BLOB   = vec3(.64, .54, .90);      // the blobs' purple: lilac, a little deeper
+
+// each blob drifts between nearby variations of that purple: periwinkle ← purple → orchid
+vec3 blobTint(float h){
+  vec3 c = mix(vec3(.52, .56, .94), BLOB, smoothstep(-1., 0., h));
+  return mix(c, vec3(.76, .50, .88), smoothstep(0., 1., h));
+}
+
+// thermal-camera colour map, cold → hot: navy fringe, royal blue, cyan, blue again, orange, burnt orange, brown,
+// and finally black — the hottest cores burn out to the same black as the void
+vec3 thermal(float t){
+  vec3 c = mix(vec3(.04, .06, .30), vec3(.14, .24, .86), smoothstep(.00, .10, t));
+  c = mix(c, vec3(.27, .47, .97), smoothstep(.10, .20, t));
+  c = mix(c, vec3(.26, .62, .95), smoothstep(.20, .29, t));
+  c = mix(c, vec3(.18, .33, .90), smoothstep(.29, .38, t));
+  c = mix(c, vec3(.96, .46, .08), smoothstep(.38, .48, t));
+  c = mix(c, vec3(.74, .27, .04), smoothstep(.50, .60, t));
+  c = mix(c, vec3(.33, .08, .02), smoothstep(.60, .70, t));
+  return mix(c, vec3(0.), smoothstep(.70, .82, t));
+}
+// stepped bands, like a heat camera's posterised palette (kept slightly soft so edges don't shimmer)
+float posterize(float t){ float q = (floor(t * 11.) + .5) / 11.; return mix(t, q, .8); }
+
+// the black hole's glow: brightness → colour along warm tones only (black → brown → burnt orange → orange → pale gold)
+vec3 warm(float x){
+  x = max(x, 0.);
+  vec3 c = mix(vec3(0.), vec3(.33, .08, .02), smoothstep(0., .3, x));
+  c = mix(c, vec3(.74, .27, .04), smoothstep(.3, .6, x));
+  c = mix(c, vec3(.96, .46, .08), smoothstep(.6, .95, x));
+  return mix(c, vec3(1., .74, .40), smoothstep(.95, 1.7, x));
+}
+
+// cyclic ramp through the palette: lilac → slate → umber → copper → lilac
+vec3 ramp(float t){
+  t = fract(t) * 4.;
+  vec3 c = mix(LILAC, SLATE, smoothstep(0., 1., t));
+  c = mix(c, UMBER,  smoothstep(1., 2., t));
+  c = mix(c, COPPER, smoothstep(2., 3., t));
+  return mix(c, LILAC, smoothstep(3., 4., t));
+}
+
+float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + 11.7; a *= .5; } return v; }
+
+vec3 stars(vec2 p){
+  vec3 c = vec3(0);
+  for (int i = 0; i < 3; i++){
+    float s = 34. + float(i) * 38.;
+    vec2 g = p * s + float(i) * 17.3;
+    vec2 id = floor(g), f = fract(g) - .5;
+    float r = h21(id);
+    if (r > .9){
+      vec2 o = vec2(h21(id + 3.1), h21(id + 7.7)) - .5;
+      float d = length(f - o * .6);
+      float tw = .55 + .45 * sin(T * (1.5 + r * 3.) + r * 60.);
+      vec3 tint = mix(vec3(.55, .7, 1.), vec3(1., .6, .3), step(.8, h21(id + 1.3)));
+      c += tint * smoothstep(.07, 0., d) * tw * (r - .9) * 5.;      // sparse, dim — the void stays black
+    }
+  }
+  return c;
+}
+
+vec3 space(vec2 p){
+  // near-black void with only a faint cold haze, like the background of a heat camera
+  vec3 col = vec3(0);
+  float n  = fbm(p * 1.3 + vec2(T * .008, -T * .004));
+  float n2 = fbm(p * 2.6 + n * 2.2 - T * .01);
+  col += vec3(.04, .07, .28) * pow(n, 3.) * .9;           // cold haze
+  col += vec3(.30, .12, .03) * pow(n * n2, 4.) * .6;      // a trace of warmth where it thickens
+  col += stars(p);
+  return col;
+}
+
+// Gravitational lensing, the real point-mass lens equation: a ray seen at θ came from β = θ − θE²·θ/|θ|².
+// Around the Einstein radius θE the sky behind the hole gets stretched into concentric rings —
+// the look of NASA's black-hole visualisations. θE is capped so a huge hole doesn't shred the whole sky.
+float einsteinR(){ return min(MASS, .4) * .55 * 1.55; }
+vec2 lens(vec2 p){
+  vec2 d = p - M; float r2 = dot(d, d) + 1e-6;
+  float rE = einsteinR();
+  return p - d * (rE * rE / r2);
+}
+
+// glowing gas hanging around the hole, described where it really is (behind/around it, in the source plane).
+// It's only ever seen through the lens, which wraps it into the bright, streaky Einstein ring.
+vec3 hotGas(vec2 s){
+  vec2 d = s - M; float r = length(d);
+  float rh = max(MASS * .55, 1e-4);
+  // it never sits still: in polar/log-radius coordinates the smoke winds into spiral arms, orbits (faster
+  // close in) and keeps streaming inward — every part of it, out to the faint edges, is being sucked down
+  float lr = log(max(r / rh, 1e-3));
+  float ang = atan(d.y, d.x) + T * .9 / (r / rh + .3) + lr * 1.6;
+  vec2 oc = vec2(cos(ang), sin(ang));
+  float n = fbm(oc * 2.2 + vec2(lr * 2.6 + T * .55, 0.)) * .7
+          + fbm(oc * 5.5 + vec2(lr * 6. + T * 1.1, 3.)) * .3;   // smoky, with finer filaments
+  float I = exp(-r / (rh * 1.4)) * (.35 + 1.9 * n * n) * 1.3;
+  // dark smoky grey → warm cream at the brightest; never touches pink, purple, green or teal
+  return mix(vec3(.14, .12, .11), vec3(1., .52, .16), smoothstep(.25, 1.1, I)) * I;   // smoky dark → orange
+}
+
+// The hole drags space around and down into itself, like water down a drain:
+// a twist that tightens toward the centre plus a radial pull (we sample further out, so things look sucked in).
+// The well's depth field, made fluid like the blobs: space around it is churned by flowing noise, and the
+// well itself is three cores circling and wobbling around the centre (like a liquid body sloshing), with a
+// slow breath — so its outline, bands and throat ooze and shift instead of being perfect circles.
+float wellH(vec2 q, float rh, out vec2 wd){
+  vec2 d0 = q - M;
+  vec2 w = vec2(fbm(d0 / rh * 1.3 + T * .28), fbm(d0 / rh * 1.3 - T * .24 + 7.)) - .5;
+  vec2 d = d0 + w * rh * .5;
+  wd = d;
+  float H = 0.;
+  for (int i = 0; i < 3; i++){
+    float fi = float(i);
+    float a = T * (.75 + .3 * fi) + fi * 2.1;
+    vec2 c = vec2(cos(a), sin(a * 1.3 + fi)) * rh * (.22 + .1 * sin(T * .9 + fi));
+    H += .34 * pow(rh / max(length(d - c), 1e-5), 1.3);
+  }
+  return H * (1. + .07 * sin(T * 1.6));
+}
+
+// How dominant the hole has become: 0 when it forms → 1 as it nears full size.
+float power(){ return clamp((MASS - .04) / .6, 0., 1.); }
+
+vec2 drain(vec2 p){
+  vec2 d = p - M; float r = length(d) + 1e-4;
+  float rh = min(MASS, .3) * .55, P = power();
+  // as it grows the whole sky twists around it — and keeps turning (SW.x accumulates), faster near the hole
+  float tw = rh * .9 / (r + rh * .3) + P * .7 * exp(-r * .9) + SW.x * .45 / (r + .35);
+  float c = cos(tw), s = sin(tw);
+  d = mat2(c, -s, s, c) * d;
+  // and everything is drawn in toward it, slowly flowing inward over time (SW.y accumulates)
+  return M + d * (1. + rh * .25 / r + P * .25 + SW.y * exp(-r * .6));
+}
+
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / R.y;
+
+  // shockwave ripple bends space as it passes
+  vec2 sd = p - SH.xy; float sr = length(sd) + 1e-4;
+  float ring = exp(-pow((sr - SH.z) * 22., 2.)) * SHA;
+  vec2 q = p + sd / sr * ring * .05;
+  // the cursor lenses the whole screen — sky, hole and liquid bulge outward around it, so you can always find it.
+  // A smooth radial warp (monotonic, so it never tears a hole). The HTML text sits above the canvas, untouched.
+  vec2 cv = q - CUR.xy;
+  q -= cv * .5 * CUR.z * exp(-dot(cv, cv) / .005);
+
+  vec3 bg = space(q);                  // no screen-space lensing or twisting any more — the hole is a shape, not a warp
+
+  // ---- black hole: a gravity well ----
+  float rh = max(MASS * .55, 1e-4);   // zero mass = invisible
+  float vis = min(MASS * 30., 1.);    // fades in as it forms
+  vec2 hd = q - M; float hr = length(hd); float ha = atan(hd.y, hd.x);
+
+  // the throat: pure black. Blobs that fall in keep going down into it in perspective and fade with depth.
+  float z = rh / max(hr, 1e-5);
+  float tfog = exp(-max(z - 1., 0.) * 2.2);
+  tfog *= smoothstep(rh * .45, rh * .85, hr);
+  float throat = smoothstep(rh * 1.03, rh * .97, hr) * vis;  // a clean black circle (just softened at the edge)
+
+  // ---- liquid metaballs ----
+  vec2 qb = q;
+
+  float f = 0., fd = 0., heat = 0., fs = 0.; vec2 g = vec2(0);
+  float hueAcc = 0.;
+  const vec2 SHADOW_OFF = vec2(.011, -.016);       // light from the upper left → shadows fall down-right
+  for (int i = 0; i < N; i++){
+    vec4 b = B[i];                                  // xy pos, z radius (negative = down inside the tunnel), w hue
+    bool caught = b.w > 2.;                         // w + 4 = already caught by the hole: seen directly, not lensed
+    vec2 d = (caught ? q : qb) - b.xy;
+    float hw = caught ? b.w - 4. : b.w;
+    // tidal force: near the hole a blob is pulled long toward it (and squeezed sideways), like a real
+    // body being torn by gravity. Gentle far away, strong right at the edge; not applied once inside.
+    vec2 hb = b.xy - M; float db = length(hb) + 1e-4;
+    float tide = vis * exp(-db / (rh * 2.2 + 1e-3)) * .75 * step(0., b.z);
+    vec2 rad = hb / db, per = vec2(-rad.y, rad.x);
+    float pr = dot(d, rad), pp = dot(d, per);
+    float ka = 1. / (1. + tide), kb = 1. + tide * .5;
+    float dd = pr * pr * ka + pp * pp * kb + 1e-8;
+    vec2 gdd = 2. * (pr * ka * rad + pp * kb * per);
+    float k = b.z * b.z, c = k / dd;
+    f += c;
+    fd += step(b.z, 0.) * c;
+    hueAcc += c * hw;                               // each blob's hue, weighted by how much of this pixel it owns
+    g -= k * gdd / (dd * dd);
+    vec2 dsh = d - SHADOW_OFF;
+    fs += step(0., b.z) * k / (dot(dsh, dsh) + 1e-8);   // the same blob, shifted: its shadow on the space behind
+    // temperature: a soft mound per blob, taller for bigger blobs — so small drops read cold (blue)
+    // and big blobs and pools run hot (orange → brown at the core), like the heat-camera reference
+    heat += k / .0016 * exp(-dd / (k * 1.8));
+  }
+  float hue = hueAcc / max(f, 1e-4);
+  float deep = clamp(fd / max(f, 1e-4), 0., 1.);   // how much of this pixel's liquid is inside the hole
+  // AA width from the field gradient (no fwidth in WebGL1)
+  float edge = clamp(.04 + length(g) / (f * f) * (12. / R.y), .02, .25);
+
+  // The black hole: a black circle wrapped in a soft white glow — a bright thin rim right at the edge that
+  // fades out into a wide, gentle halo. (Its pull, growth and swallowing are unchanged.)
+  // Heavy chromatic aberration: red, green and blue each see the hole at a slightly different size
+  // (red largest, blue smallest), so the rim and halo split into colour fringes around the black disc.
+  vec3 holeMask = vec3(1. - throat);
+  if (vis > .002){
+    vec3 sc = vec3(1.018, 1., .982);                              // per-channel scale of the hole (a subtle split)
+    for (int c = 0; c < 3; c++){
+      float s = c == 0 ? sc.x : c == 1 ? sc.y : sc.z;
+      float rc = rh * s;
+      float ro = max(hr / rc - 1., 0.);
+      float glow = exp(-ro * 3.2) * .5                                        // wide soft halo
+                 + exp(-pow((hr - rc * 1.02) / (rc * .05 + 1e-4), 2.)) * .41;  // bright thin rim
+      glow *= vis * smoothstep(rc * .96, rc * 1.02, hr);
+      float m = 1. - smoothstep(rc * 1.03, rc * .97, hr) * vis;  // this channel's black disc
+      if (c == 0){ bg.r += glow; holeMask.r = m; }
+      else if (c == 1){ bg.g += glow; holeMask.g = m; }
+      else { bg.b += glow; holeMask.b = m; }
+    }
+  }
+  bg *= holeMask;
+  vec3 col = bg;
+
+  // soft, slightly blurred outline — the blob glows out of the dark rather than being cut out of it
+  float inside = smoothstep(1. - edge * 3.5 - .12, 1. + edge * 1.5, f);
+  // a soft navy fringe bleeding off the edge, like heat haze around a warm body (none down in the tunnel)
+  col += vec3(.06, .10, .55) * smoothstep(.6, 1., f) * (1. - inside) * .3 * (1. - deep) * (1. - throat);
+  // soft drop shadows: each blob floats above the space behind it
+  col *= 1. - .5 * smoothstep(.45, 1.1, fs) * (1. - inside) * (1. - throat);
+
+  // Blobs: heat-map colour, now with volume. Temperature rises from the edge inward (the edge always starts
+  // cold, how hot the middle gets depends on size), and the surface is lit as a 3D dome with a slightly
+  // lumpy, organic skin — so the bands wrap over a rounded body instead of lying flat.
+  vec3 liquid = vec3(0);
+  if (inside > 0.){
+    float hs = sqrt(clamp(1. - 1. / f, 0., 1.));                   // dome height: 0 at the rim → 1 on top
+    vec2 gs = g / (f * f);
+    float tilt = .016 / (hs + .04) * (1. - .6 * smoothstep(.55, .97, hs));
+    // skin texture: two scales of noise, used both as bumps (for the light) and to make band edges organic
+    vec2 tq = qb * 42. + hue * 3.;
+    float tx = noise(tq) * .6 + noise(tq * 2.6 + 5.) * .4;
+    float tdx = noise(tq + vec2(.35, 0.)) - noise(tq), tdy = noise(tq + vec2(0., .35)) - noise(tq);
+    vec3 nrm = normalize(vec3(-gs * tilt - vec2(tdx, tdy) * .45, 1.));   // gentler bumps: the skin reads through the speckle, not the light
+
+    float fromEdge = smoothstep(0., .55, 1. - 1. / f);              // 0 at the surface → 1 inside
+    float t = (1. - exp(-heat * 1.1)) * (.3 + .7 * fromEdge);
+    // granular texture like the reference: per-pixel speckle dithers the band edges so they dissolve
+    // into grain instead of hard lines, and the bands themselves are softer (less stepped)
+    float g1 = h21(gl_FragCoord.xy);
+    float tt2 = clamp(t + hue * .05 + (tx - .5) * .08 + (g1 - .5) * .03, 0., 1.);
+    float qq = (floor(tt2 * 11.) + .5) / 11.;
+    t = mix(tt2, qq, .5);
+    liquid = thermal(t);
+    vec3 Lt = normalize(vec3(-.45, .55, .7));
+    float lam = .45 + .7 * max(dot(nrm, Lt), 0.);                    // lit side / shaded side
+    float rim = mix(.5, 1., smoothstep(0., .5, hs));                 // edges turn away and darken: roundness
+    float spec = pow(max(dot(reflect(-Lt, nrm), vec3(0, 0, 1)), 0.), 22.) * .16;
+    liquid = liquid * lam * rim + vec3(1., .88, .75) * spec * smoothstep(.1, .5, hs);
+    // texture: fine, single-pixel grain
+    // grain as a multiply layer at 70% opacity: a fine (single-pixel) grey noise multiplied over the colour
+    liquid *= mix(1., mix(.62, 1., g1), .4 - .12 * LIVE);
+    // on the funnel a blob dims a little as it slopes down; inside the tunnel it takes on the walls' light and fog
+    float slope = mix(1., smoothstep(rh * .8, rh * 3., hr), .45 * vis);
+    vec3 inTunnel = liquid * tfog;                       // just darkens with depth — no tint, so no colour mixing
+    liquid = mix(liquid * slope, inTunnel, deep);
+  }
+
+  // tone map the scene (blobs keep their exact heat-map colours), vignette, grain
+  col = 1. - exp(-col * 1.5);
+  col = max(mix(vec3(dot(col, vec3(.299, .587, .114))), col, 1.35), 0.);   // tone mapping greys the palette; push it back
+  col = mix(col, liquid, inside);
+  col *= 1. - .45 * dot(p * .9, p * .9);
+  gl_FragColor = vec4(pow(max(col, 0.), vec3(.92)) * (1. - FADE), 1.);
+}`;
+
+  function sh(type, src){
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, vert));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, frag));
+  gl.bindAttribLocation(prog, 0, 'a');
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  // particle renderer: one soft point sprite per speck, blended additively over the scene.
+  // p = (x, y) in scene space, z = size in px, w = alpha*100 (integer part) + tint 0..1 (fraction)
+  const pvert = `
+attribute vec4 p;
+uniform float HALF;
+varying float vt, va;
+void main(){
+  gl_Position = vec4(p.x / HALF, p.y * 2., 0., 1.);
+  gl_PointSize = p.z;
+  vt = fract(p.w); va = floor(p.w) / 100.;
+}`;
+  const pfrag = `
+precision mediump float;
+uniform float FADE;
+varying float vt, va;
+void main(){
+  float d = length(gl_PointCoord - .5);
+  float a = (1. - smoothstep(0., .5, d)) * .45 + (1. - smoothstep(0., .16, d)) * 1.1;   // soft glow + bright core
+  vec3 col = mix(vec3(.30, .52, 1.), vec3(1., .52, .12), vt);   // cold blue → hot orange dust
+  gl_FragColor = vec4(col * a * va * 1.3 * (1. - FADE), 1.);
+}`;
+  const pprog = gl.createProgram();
+  gl.attachShader(pprog, sh(gl.VERTEX_SHADER, pvert));
+  gl.attachShader(pprog, sh(gl.FRAGMENT_SHADER, pfrag));
+  gl.bindAttribLocation(pprog, 0, 'p');
+  gl.linkProgram(pprog);
+  const PU = { HALF: gl.getUniformLocation(pprog, 'HALF'), FADE: gl.getUniformLocation(pprog, 'FADE') };
+  const NP = 2000;
+  const pbuf = new Float32Array(NP * 4);
+  const partBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, pbuf.byteLength, gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+
+  // ---------- post-processing: the finished frame (scene + dust) is drawn into a texture, then
+  // re-drawn to the screen with chromatic aberration and a grungy, worn-film finish ----------
+  const postFrag = `
+precision highp float;
+uniform sampler2D SCENE;
+uniform vec2 RES;
+uniform float FADE;
+uniform vec2 HM;       // hole position (scene space)
+uniform float HMASS;   // hole size
+uniform float HT;      // time
+uniform float LIVE;    // 0 title screen → 1 entered
+float h(vec2 p){ p = fract(p * vec2(233.34, 851.73)); p += dot(p, p + 23.45); return fract(p.x * p.y); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+float fb(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 4; i++){ v += a * vn(p); p *= 2.07; a *= .5; } return v; }
+void main(){
+  vec2 uv = gl_FragCoord.xy / RES;
+
+  // (no screen-space warp around the black hole any more — it reads as a 3D well in the scene itself)
+
+  // chromatic aberration: red and blue split apart, growing toward the edges like a cheap lens
+  vec2 dir = uv - .5;
+  vec2 off = dir * length(dir) * .022 + dir * .0025;
+  // palette-coloured aberration: instead of pulling R/G/B apart (which mixes blue and orange into green/olive),
+  // edges get a soft lens smear plus fringes tinted only orange on one side and blue on the other
+  vec3 c0 = texture2D(SCENE, uv).rgb, cA = texture2D(SCENE, uv + off).rgb, cB = texture2D(SCENE, uv - off).rgb;
+  float fr = dot(cA - cB, vec3(.3, .55, .15));
+  vec3 col = mix(c0, (cA + cB) * .5, .3) + vec3(.96, .46, .08) * max(fr, 0.) * .55 + vec3(.12, .22, .82) * max(-fr, 0.) * .55;
+  // grunge (all static): blotchy uneven exposure, dust specks, a few faint scratches, and crushed tones
+  vec2 p = gl_FragCoord.xy / RES.y;
+  float blotch = fb(p * 3.2) * .6 + fb(p * 11. + 7.) * .4;
+  float quiet = 1. - .3 * LIVE;                              // the grunge eases back a little once you've entered
+  col *= 1. + (.18 * blotch - .09) * quiet;
+  float speck = h(floor(gl_FragCoord.xy / 2.));
+  col *= 1. - step(.9965, speck) * .35 * quiet;               // dark dust
+  float sx = floor(gl_FragCoord.x / 1.5);
+  col *= 1. - step(.9975, h(vec2(sx, 1.))) * .15 * quiet * vn(vec2(sx, gl_FragCoord.y * .01));   // vertical scratches
+  col = floor(col * 42. + .5) / 42.;                         // slight colour crunch
+  // subtle noise: a fine, gently moving grain over the whole frame
+  col += (h(gl_FragCoord.xy + fract(HT * 7.3) * 113.) - .5) * .045;
+  col *= 1. - FADE;                                          // the end of the loop is truly black: no grunge, no specks
+  gl_FragColor = vec4(col, 1.);
+}`;
+  const postProg = gl.createProgram();
+  gl.attachShader(postProg, sh(gl.VERTEX_SHADER, vert));
+  gl.attachShader(postProg, sh(gl.FRAGMENT_SHADER, postFrag));
+  gl.bindAttribLocation(postProg, 0, 'a');
+  gl.linkProgram(postProg);
+  const PostU = { SCENE: gl.getUniformLocation(postProg, 'SCENE'), RES: gl.getUniformLocation(postProg, 'RES'), FADE: gl.getUniformLocation(postProg, 'FADE'),
+                  HM: gl.getUniformLocation(postProg, 'HM'), HMASS: gl.getUniformLocation(postProg, 'HMASS'), HT: gl.getUniformLocation(postProg, 'HT'), LIVE: gl.getUniformLocation(postProg, 'LIVE') };
+  const sceneTex = gl.createTexture(), sceneFbo = gl.createFramebuffer();
+  function sizeScene(w, h){
+    gl.bindTexture(gl.TEXTURE_2D, sceneTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sceneTex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  const U = {};
+  ['R','T','M','MASS','SH','SHA','FALL','CUR','FADE','SW','FEED','LIVE','B'].forEach(n => U[n] = gl.getUniformLocation(prog, n === 'B' ? 'B[0]' : n));
+
+  // ---------- simulation (scene space: y up, height = 1, x = ±aspect/2) ----------
+  let W = 1, H = 1, aspect = 1;
+  const DPR = Math.min(window.devicePixelRatio || 1, 1.5) * 0.8;
+  function resize(){
+    W = stage.clientWidth; H = stage.clientHeight; aspect = W / H;
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    sizeScene(canvas.width, canvas.height);
+  }
+  addEventListener('resize', resize); resize();
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const drops = [];
+  // sizes: lots of small droplets, a good number of medium ones, and a few big heavy globs
+  function blobSize(){
+    const r = Math.random();
+    return r < 0.5 ? rand(0.008, 0.02) : r < 0.85 ? rand(0.022, 0.04) : rand(0.045, 0.075);
+  }
+  function spawn(grow){
+    for (let i = 0; i < N; i++){
+      const a = rand(0, Math.PI * 2), r = rand(0.12, 0.42);
+      const v = Math.sqrt(0.03 / r) * rand(0.85, 1.1);
+      drops[i] = { x: Math.cos(a) * r, y: Math.sin(a) * r, vx: -Math.sin(a) * v, vy: Math.cos(a) * v,
+                   r0: blobSize(), s: grow ? 0 : 1, eaten: false, eatP: 0, ea: 0, er: 0, deep: false,
+                   // colour: each blob has its own resting hue and drifts slowly around it
+                   hue: rand(-0.7, 0.7), hspd: rand(0.12, 0.35), hph: rand(0, Math.PI * 2) };
+    }
+  }
+  spawn(false);
+
+  const ptr = { x: 0, y: 0, vx: 0, vy: 0, active: false, down: false, last: -1e9 };
+  const wellP = { x: 0, y: 0 };
+  let mass = 0, shock = { x: 0, y: 0, r: 9, a: 0 }, fall = 0, stir = 0;
+  // ending: once every droplet is swallowed the hole swells over the whole screen, holds black, then loops
+  let phase = 'play', phaseT = 0, fade = 0, eatB = 0, eatV = 0, collapseFrom = 0, swTurn = 0, swIn = 0, feed = 0;
+  const easeInOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+  function toScene(e){
+    const b = stage.getBoundingClientRect();
+    return { x: ((e.clientX - b.left) / b.height) - aspect / 2, y: 0.5 - (e.clientY - b.top) / b.height };
+  }
+  stage.addEventListener('pointermove', e => {
+    const p = toScene(e), now = performance.now();
+    const dt = Math.max((now - ptr.last) / 1000, 1 / 240);
+    if (ptr.active && dt < 0.1){     // cursor velocity, smoothed — this is what stirs the liquid
+      ptr.vx += ((p.x - ptr.x) / dt - ptr.vx) * 0.5;
+      ptr.vy += ((p.y - ptr.y) / dt - ptr.vy) * 0.5;
+    }
+    Object.assign(ptr, p); ptr.active = true; ptr.last = now;
+  });
+  stage.addEventListener('pointerleave', () => { ptr.active = false; });
+
+  // the black hole wakes the moment the cursor first touches a blob, then hunts until everything is eaten
+  let hunting = false;
+
+  // click starts the simulation and clears the title; the loop brings the title back and waits again
+  const intro = document.getElementById('intro');
+  let started = false;
+  stage.addEventListener('pointerdown', () => {
+    initAudio();                       // browsers only allow sound after a click
+    if (window.parent !== window) parent.postMessage({ type: 'gravity:gesture' }, '*');   // lets the site start its music too
+    if (started) return;
+    started = true; intro.classList.add('gone'); stage.classList.add('live');
+  });
+
+  // ---------- sound: a gravitational-wave chirp each time a blob is consumed ----------
+  // everything plays into a shared bus that feeds a dry path, a soft feedback echo and a long airy reverb
+  const SFX_VOL = 0.06;   // sound-effect level (quieter, so the site's music leads)
+  let actx = null, bus = null, master = null, chimes = 0, muted = false;
+  function initAudio(){
+    if (actx){ if (actx.state === 'suspended') actx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    actx = new AC();
+    master = actx.createGain(); master.gain.value = muted ? 0 : SFX_VOL;
+    const comp = actx.createDynamicsCompressor();
+    master.connect(comp).connect(actx.destination);
+
+    bus = actx.createGain();
+    bus.connect(master);                                       // dry
+
+    const delay = actx.createDelay(1.5); delay.delayTime.value = 0.34;   // the echo after each chirp
+    const fb = actx.createGain(); fb.gain.value = 0.42;
+    const tone = actx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
+    const echo = actx.createGain(); echo.gain.value = 0.38;
+    bus.connect(delay); delay.connect(tone).connect(fb).connect(delay);
+    tone.connect(echo).connect(master);
+
+    const verb = actx.createConvolver();                       // airy space: decaying stereo noise impulse
+    const len = Math.floor(actx.sampleRate * 3.2), ir = actx.createBuffer(2, len, actx.sampleRate);
+    for (let c = 0; c < 2; c++){
+      const ch = ir.getChannelData(c);
+      for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+    }
+    verb.buffer = ir;
+    const wet = actx.createGain(); wet.gain.value = 0.75;
+    bus.connect(verb).connect(wet).connect(master);
+  }
+
+  // Each consumption is a gravitational-wave merger turned into sound, the way LIGO did it — softened into a chime:
+  //  inspiral — a soft sine "whoop" whose pitch and loudness climb as the pair orbit faster
+  //             (f ∝ (t_c − t)^−3/8, amplitude ∝ f^2/3), shifted up into human hearing like LIGO's second playback;
+  //  merger + ringdown — instead of a dry ring, the new hole blooms into a glassy bell at the peak note,
+  //             which drifts off into the echo and reverb.
+  // embedded in the site: the site plays the sounds (it already has the browser's permission to make sound,
+  // which this frame often doesn't — the game is played by hovering and starts by itself, so there's no click here)
+  const EMBED = window.parent !== window;
+  function gwChirp(fPeak, dur, sweepOct, level, bellDecay){
+    if (EMBED){ parent.postMessage({ type: 'gravity:chirp', a: [fPeak, dur, sweepOct, level, bellDecay] }, '*'); return; }
+    const t = actx.currentTime + 0.01, n = 256;
+    const kEnd = Math.pow(2, sweepOct), c = 1 - Math.pow(kEnd, -8 / 3), f0 = fPeak / kEnd;
+    const fc = new Float32Array(n), ac = new Float32Array(n);
+    for (let i = 0; i < n; i++){
+      const u = i / (n - 1), k = Math.pow(1 - u * c, -0.375);
+      fc[i] = f0 * k;
+      ac[i] = level * 0.55 * Math.pow(k / kEnd, 2 / 3) * Math.min(1, u * 10);
+    }
+    // inspiral sweep
+    const sweep = actx.createGain();
+    sweep.gain.setValueCurveAtTime(ac, t, dur);
+    sweep.gain.setValueAtTime(ac[n - 1], t + dur + 0.02);
+    sweep.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.25);   // hands off to the bell
+    sweep.connect(bus);
+    const o = actx.createOscillator();
+    o.frequency.setValueCurveAtTime(fc, t, dur);
+    o.frequency.setValueAtTime(fPeak, t + dur + 0.02);
+    o.connect(sweep);
+    o.start(t); o.stop(t + dur + 0.3);
+
+    // merger bloom: soft-attack bell partials (with a slightly detuned twin for shimmer) at the peak note
+    const tb = t + dur * 0.92;
+    for (const [ratio, amp, dk] of [[1, 0.5, 1], [1.003, 0.3, 1], [2.0, 0.12, 0.7], [2.76, 0.14, 0.5], [5.4, 0.05, 0.25]]){
+      const b = actx.createOscillator(), g = actx.createGain();
+      b.frequency.value = fPeak * ratio;
+      g.gain.setValueAtTime(0, tb);
+      g.gain.linearRampToValueAtTime(amp * level, tb + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, tb + bellDecay * dk);
+      b.connect(g).connect(bus);
+      b.start(tb); b.stop(tb + bellDecay * dk + 0.05);
+    }
+  }
+
+  // Real physics: heavier black holes chirp lower and slower — so as the hole grows, each merger
+  // lands on a lower note of a pentatonic scale (two octaves, C6 down to C4) and sweeps for longer.
+  const NOTES = [24, 21, 19, 16, 14, 12, 9, 7, 4, 2, 0];
+  function chime(){
+    if (!EMBED && (!actx || !bus)) return;
+    const prog = Math.min(chimes / (N - 1), 1);
+    chimes++;
+    const note = NOTES[Math.min(Math.floor(prog * NOTES.length), NOTES.length - 1)];
+    gwChirp(261.63 * Math.pow(2, note / 12), 0.28 + prog * 0.32, 1.5, 0.6, 2.4 + prog * 1.2);
+  }
+
+  // the final collapse: the biggest merger of all — a long, deep sweep that rides the expansion and blooms into black
+  function finalChirp(){
+    if (!EMBED && (!actx || !bus)) return;
+    gwChirp(130.81, 2.6, 2.5, 0.8, 5);
+  }
+
+  // number keys 1–9 set the gravity level: 1 = loose, flowing currents · 9 = droplets flying everywhere
+  const LEVELS = 5;                     // keys 1–5 (each step is the same strength as before; 5 is now the top)
+  let level = 1, grav = 1;
+  function onKey(e){
+    const n = Number(e.key);
+    if (n >= 1 && n <= LEVELS && !e.ctrlKey && !e.metaKey && !e.altKey){ level = n; }
+    if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey){   // M toggles all sound
+      muted = !muted;
+      if (master) master.gain.setTargetAtTime(muted ? 0 : SFX_VOL, actx.currentTime, 0.05);
+      if (window.parent !== window) parent.postMessage({ type: 'gravity:mute', muted }, '*');   // M mutes the site's music too
+    }
+  }
+  addEventListener('keydown', onKey);
+
+  // the last stretch of scroll turns gravity "down" so the liquid drains into the next section
+  function onScroll(){
+    const b = well.getBoundingClientRect();
+    const span = b.height - innerHeight;
+    if (span <= 0){ fall = 0; return; }   // embedded as one fixed screen: there is no scroll exit
+    const prog = Math.min(Math.max(-b.top / span, 0), 1);
+    fall = Math.min(Math.max((prog - 0.55) / 0.4, 0), 1);
+  }
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const buf = new Float32Array(N * 4);
+
+  // ---------- particles: dust that obeys the same gravity, currents and black hole as the liquid ----------
+  const parts = [];
+  function newPart(p, edge){
+    if (edge){                                   // fresh dust drifts in from the edges of the screen
+      const side = Math.floor(rand(0, 4));
+      p.x = side < 2 ? (side ? 1 : -1) * aspect / 2 : rand(-aspect / 2, aspect / 2);
+      p.y = side >= 2 ? (side === 2 ? 0.5 : -0.5) : rand(-0.5, 0.5);
+    } else { p.x = rand(-aspect / 2, aspect / 2); p.y = rand(-0.5, 0.5); }
+    p.vx = rand(-0.05, 0.05); p.vy = rand(-0.05, 0.05);
+    p.size = Math.random() < 0.12 ? rand(5, 8) : rand(2, 4.5); p.alpha = rand(0.5, 0.99); p.tint = Math.random() < 0.7 ? rand(0, 0.3) : rand(0.6, 0.99);
+    p.tws = rand(1, 4); p.twp = rand(0, Math.PI * 2); p.vis = edge ? 0 : 1;
+    return p;
+  }
+  function spawnParts(){ for (let i = 0; i < NP; i++) parts[i] = newPart(parts[i] || {}, false); }
+
+  // matter being torn off a blob by the hole: specks peel away from its surface and stream round and in
+  let shedIdx = 0;
+  function shed(d, count){
+    for (let n = 0; n < count; n++){
+      const p = parts[shedIdx]; shedIdx = (shedIdx + 1) % NP;
+      const a = rand(0, Math.PI * 2), rr = d.r0 * rand(0.6, 1.1);
+      p.x = d.x + Math.cos(a) * rr; p.y = d.y + Math.sin(a) * rr;
+      const hx = wellP.x - p.x, hy = wellP.y - p.y, hl = Math.hypot(hx, hy) + 1e-4;
+      const sp = rand(0.15, 0.45);
+      p.vx = (hx / hl * 0.6 - hy / hl) * sp;          // mostly sideways (orbit) with a lean inward
+      p.vy = (hy / hl * 0.6 + hx / hl) * sp;
+      p.size = rand(2, 4.5); p.alpha = rand(0.6, 0.99); p.vis = 1;
+      p.tint = Math.random() < 0.6 ? rand(0.6, 0.99) : rand(0, 0.3);   // mostly hot orange, some cold blue
+    }
+  }
+  spawnParts();
+
+  function stepParticles(dt, t, m){
+    const en = Math.min((grav - 1) / 8 + 0.06 * (1 - (grav - 1) / 4) + Math.min(m, 0.6) * 0.3, 1);   // same scale as the blobs
+    const G = 0.012 * (0.15 + en * 2.4);
+    const flow = 0.14 + en * 1.3, flowT = t * 0.001 * (0.5 + en * 3);
+    const rh = m * 0.55, holeReach = rh * 2.5 + 0.03, holePull = 0.12 + m * 6 + m * m * 14;   // pull climbs steeply with size
+    const reach = 0.08 + Math.min(Math.hypot(ptr.vx, ptr.vy), 3) * 0.03;
+    const drag = Math.exp(-dt * (0.25 * (1 - en) + 0.04));
+    for (const p of parts){
+      let ax = 0, ay = -fall * 2.2;
+      const dx = wellP.x - p.x, dy = wellP.y - p.y;
+      const r2 = dx * dx + dy * dy + 0.004, r = Math.sqrt(r2);
+      const gw = G * (1 - fall * 0.85) / (r2 * r);
+      ax += dx * gw; ay += dy * gw;
+      if (m > 0.001 && r < holeReach * 1.4){                     // dust feels the hole from a little further out
+        const hp = holePull * 1.3 * (1 - r / (holeReach * 1.4)) / r;
+        ax += dx * hp - dy * hp * 0.6; ay += dy * hp + dx * hp * 0.6;   // with a swirl, so it spirals in
+      }
+      const fx = (p.x + Math.sin(flowT * 0.31) * 0.4) * 6, fy = (p.y + Math.cos(flowT * 0.23) * 0.4) * 6;
+      const ux = Math.sin(fx) * Math.cos(fy) * flow, uy = -Math.cos(fx) * Math.sin(fy) * flow;
+      ax += (ux - p.vx) * 0.8 * (1 - fall); ay += (uy - p.vy) * 0.8 * (1 - fall);
+      if (stir > 0.01){                                          // the cursor scatters dust too
+        const cx = p.x - ptr.x, cy = p.y - ptr.y, cd = Math.hypot(cx, cy) + 1e-4;
+        const w = Math.max(1 - cd / reach, 0) * stir;
+        if (w > 0){ ax += cx / cd * w * w * 10 + (ptr.vx - p.vx) * w * 5; ay += cy / cd * w * w * 10 + (ptr.vy - p.vy) * w * 5; }
+      }
+      p.vx = (p.vx + ax * dt) * drag; p.vy = (p.vy + ay * dt) * drag;
+      const sp = Math.hypot(p.vx, p.vy); if (sp > 3){ p.vx *= 3 / sp; p.vy *= 3 / sp; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      // wrap around the screen (dust is endless); during the scroll exit it falls away instead
+      const hx = aspect / 2 + 0.02;
+      if (p.x < -hx) p.x += hx * 2; else if (p.x > hx) p.x -= hx * 2;
+      if (p.y > 0.52) p.y -= 1.04; else if (p.y < -0.52 && fall < 0.05) p.y += 1.04;
+      // near the hole it shrinks into the throat; once inside, it's gone and fresh dust drifts in from an edge
+      p.vis = Math.min(p.vis + dt * 1.5, 1);
+      const dh = Math.hypot(p.x - wellP.x, p.y - wellP.y);
+      if (m > 0.001){
+        p.vis *= Math.min(Math.max((dh - rh * 0.5) / (rh * 1.2), 0), 1);
+        if (dh < rh * 0.6) newPart(p, true);
+      }
+    }
+  }
+  let last = performance.now(), t0 = last, curVis = 0, live = 0;
+
+  function step(dt, t){
+    // idle: if nobody is steering, the well drifts on its own orbit
+    // before the first click the cursor only stirs the liquid; the well wanders on its own and nothing can be eaten
+    const steer = ptr.active && (started || t - ptr.last < 5000);   // once started, a resting cursor still holds the well
+    const idle = !started || !steer;
+    const tx = idle ? Math.sin(t * 0.00023) * aspect * 0.22 : ptr.x;
+    const ty = idle ? Math.sin(t * 0.00031 + 1.3) * 0.16 : ptr.y;
+    const ease = 1 - Math.exp(-dt * (idle ? 1.5 : 14));
+    wellP.x += (tx - wellP.x) * ease; wellP.y += (ty - wellP.y) * ease;
+
+    // mass: none at rest — the hole only materialises while you hold, then evaporates
+    let eatenN = 0;
+    for (const d of drops) if (d.eaten) eatenN += easeInOut(d.eatP);   // grows as each blob sinks, not all at once
+    phaseT += dt;
+    if (phase === 'play'){
+      // touching a blob opens a small seed hole; it never grows on its own — only by eating (eatB below)
+      if (started && !hunting && ptr.active && !idle && drops.some(d => !d.eaten && Math.hypot(d.x - ptr.x, d.y - ptr.y) < d.r0 * 1.5)){
+        hunting = true;
+      }
+      if (hunting && ptr.active) mass += (0.03 - mass) * (1 - Math.exp(-dt * 6));
+      else mass *= Math.exp(-dt * 2.2);
+      // the moment the last blob is caught, the collapse begins — no waiting for it to finish falling
+      if (drops.every(d => d.eaten)){ phase = 'collapse'; phaseT = 0; collapseFrom = mass; finalChirp(); }
+    } else if (phase === 'collapse'){
+      // eased swell over ~3s: gathers, accelerates past the screen edges, then settles into black
+      mass = collapseFrom + (4 - collapseFrom) * easeInOut(Math.min(phaseT / 3, 1));
+      fade = Math.min(Math.max((phaseT - 2.2) / 1.2, 0), 1);
+      if (fade >= 1){ phase = 'black'; phaseT = 0; dispatchEvent(new CustomEvent('gravity:end')); if (window.parent !== window) parent.postMessage({ type: 'gravity:end' }, '*'); }
+    } else if (phase === 'black'){
+      if (false){                                         // (embedded in the site: the game ends on black and stays there)
+        spawn(true); spawnParts(); mass = 0; eatB = 0; eatV = 0; level = 1; grav = 1; swTurn = 0; swIn = 0;
+        shock.a = 0; hunting = false;
+        started = false; intro.classList.remove('gone'); stage.classList.remove('live'); chimes = 0;
+        phase = 'intro'; phaseT = 0;
+      }
+    } else if (phase === 'intro'){
+      fade = Math.max(1 - phaseT / 1.4, 0);
+      if (fade <= 0) phase = 'play';
+    }
+    // every droplet swallowed makes the hole bigger (and hungrier)
+    // the hole eases up to its new size after each blob (critically damped spring: smooth start, smooth stop)
+    eatV += (((eatenN / N) * 1.1 - eatB) * 10 - eatV * 6.3) * dt;
+    eatB += eatV * dt;
+    const m = (phase === 'black' || phase === 'intro') ? 0 : (mass + eatB) * (1 - fall);
+
+
+    shock.r += dt * 0.9; shock.a *= Math.exp(-dt * 1.6);
+
+    // the sky keeps twisting and flowing inward, harder the bigger the hole (mirrors power() in the shader)
+    const P = Math.min(Math.max((m - 0.04) / 0.6, 0), 1);
+    swTurn += dt * P * 0.45; swIn += dt * P * 0.035;
+
+    // the cursor is a solid paddle in the liquid while you're not holding
+    stir += ((steer && !hunting ? 1 : 0) * (1 - fall) - stir) * (1 - Math.exp(-dt * 6));
+    const pdecay = Math.exp(-dt * 8);
+    ptr.vx *= pdecay; ptr.vy *= pdecay;
+    const pspeed = Math.hypot(ptr.vx, ptr.vy);
+    const reach = 0.06 + Math.min(pspeed, 3) * 0.025;   // a fast swipe parts a wider wake
+
+    // gravity level eases toward the chosen key so each change is felt, not snapped
+    grav += (level - grav) * (1 - Math.exp(-dt * 3));
+    // level 1 → 0, level 5 → .5 (the same feel as before); a growing black hole nudges gravity up a little more
+    const en = Math.min((grav - 1) / 8 + 0.06 * (1 - (grav - 1) / 4) + Math.min(m, 0.6) * 0.3, 1);
+    const gmul  = 0.15 + en * 2.4;             // pull of the well
+    const cling = 0.3 + 0.7 * Math.sin(Math.PI * en);   // loose at both ends, pools in the middle levels
+    const flow  = 0.14 + en * 1.3;             // speed of the drifting currents
+    const flowT = t * 0.001 * (0.5 + en * 3);  // and how fast they churn
+    const dragK = 0.4 * (1 - en) + 0.02;       // gliding → nearly frictionless
+    const cap   = 0.5 + en * 3.5;              // top speed
+    const kick  = en * en * 4;                 // random shoves per second at high levels
+    const bounce = 0.5 + en * 0.45;
+
+    const G = 0.012 * gmul;
+    // the hole's own pull is short-range: you have to bring it to the blobs
+    const holeReach = m * 0.55 * 2.6 + 0.02,   // = how far the hole visibly reaches
+          holePull = 0.12 + m * 6 + m * m * 14;   // a bigger hole pulls much harder
+    const rh = m * 0.55;
+    for (let i = 0; i < N; i++){
+      const d = drops[i];
+      if (d.eaten){
+        // caught: spiral in to the lip, then fall down the tunnel in perspective.
+        // depth z grows as it falls; on screen it sits at lip/z and is drawn at 1/z scale — the vanishing point.
+        // the bigger the hole, the faster a caught blob is dragged round and down into it
+        const gulp = 1 + Math.min(m, 1.2) * 4;
+        d.eatP = Math.min(d.eatP + dt * gulp / 2.2, 1);
+        const p = d.eatP, A = 0.35;
+        const lip = Math.max(rh, 0.004) * 0.9;
+        const fit = Math.min(1, lip * 0.85 / d.r0);           // narrows enough to pass through the opening
+        let r, s;
+        if (p < A){
+          const u = p / A, e = u * u * (3 - 2 * u);
+          r = d.er + (lip - d.er) * e;
+          s = 1 + (fit - 1) * e;
+          d.deep = false;
+        } else {
+          const u = (p - A) / (1 - A), z = 1 + 18 * u * u;    // accelerates as it drops
+          r = lip / z; s = fit / z;
+          d.deep = true;
+        }
+        d.ea += dt * (2 + 10 * p) * gulp;
+        d.x = wellP.x + Math.cos(d.ea) * r;
+        d.y = wellP.y + Math.sin(d.ea) * r;
+        d.s = p >= 1 ? 0 : s;
+        // while it's being dragged in, the hole tears matter off it — a visible stream spiralling ahead of it
+        if (p < A && Math.random() < dt * 60 * gulp) shed(d, 1 + (d.r0 > 0.03 ? 1 : 0));
+        continue;
+      }
+      d.s += (1 - d.s) * (1 - Math.exp(-dt * 4));
+      // blobs that wander close to a hungry hole start losing a little matter before they're even caught
+      if (m > 0.01){
+        const near = Math.hypot(d.x - wellP.x, d.y - wellP.y);
+        if (near < holeReach * 1.3 && Math.random() < dt * 14 * (1 - near / (holeReach * 1.3))) shed(d, 1);
+      }
+
+      let ax = 0, ay = -fall * 2.2;
+      // pull of the well (softened inverse square)
+      const dx = wellP.x - d.x, dy = wellP.y - d.y;
+      const r2 = dx * dx + dy * dy + 0.004, r = Math.sqrt(r2);
+      const gw = G * (1 - fall * 0.85) / (r2 * r);
+      ax += dx * gw; ay += dy * gw;
+      // the pull starts the moment the hole's visible edge touches the blob's edge (not its centre):
+      // a gentle tug right at first contact, growing steeply as it's drawn deeper in
+      const reEdge = r - d.r0;
+      if (m > 0.001 && reEdge < holeReach){
+        const k = Math.max(1 - reEdge / holeReach, 0);
+        const hp = holePull * (0.1 + 0.9 * k * k) / r;
+        ax += dx * hp - dy * hp * 0.35; ay += dy * hp + dx * hp * 0.35;   // with a little swirl, like the glow
+      }
+
+      // droplets pull on each other a little (they want to pool, like liquid)
+      for (let j = 0; j < N; j++){
+        if (j === i || drops[j].eaten) continue;
+        const o = drops[j];
+        const ex = o.x - d.x, ey = o.y - d.y, e2 = ex * ex + ey * ey + 0.002;
+        const e = Math.sqrt(e2), touch = (d.r0 + o.r0) * 1.1;
+        let k = 0.0009 * cling * o.r0 / e2;
+        if (e < touch) k -= (touch - e) * 1.4;   // incompressible-ish
+        ax += ex / e * k * 30; ay += ey / e * k * 30;
+      }
+
+      // cursor: shove droplets out of the way and drag them along with the swipe
+      if (stir > 0.01){
+        const cx = d.x - ptr.x, cy = d.y - ptr.y, cd = Math.hypot(cx, cy) + 1e-4;
+        const w = Math.max(1 - cd / (reach + d.r0), 0) * stir;
+        if (w > 0){
+          const w2 = w * w;
+          ax += cx / cd * w2 * 12;                         // push out radially
+          ay += cy / cd * w2 * 12;
+          ax += (ptr.vx - d.vx) * w * 4;                   // carried by the cursor's motion
+          ay += (ptr.vy - d.vy) * w * 4;
+        }
+      }
+
+      // drifting currents — wandering vortex cells (Taylor–Green flow); droplets ride the eddies
+      {
+        const fx = (d.x + Math.sin(flowT * 0.31) * 0.4) * 6, fy = (d.y + Math.cos(flowT * 0.23) * 0.4) * 6;
+        const ux =  Math.sin(fx) * Math.cos(fy) * flow, uy = -Math.cos(fx) * Math.sin(fy) * flow;
+        const carry = (1.2 + en * 2) * (1 - fall);
+        ax += (ux - d.vx) * carry; ay += (uy - d.vy) * carry;
+      }
+
+      d.vx += ax * dt; d.vy += ay * dt;
+      if (Math.random() < kick * dt){            // high gravity: random slingshots
+        const a = rand(0, Math.PI * 2), s = rand(0.6, 1.6) * en;
+        d.vx += Math.cos(a) * s; d.vy += Math.sin(a) * s;
+      }
+      const drag = Math.exp(-dt * (dragK + (hunting ? 0.3 : 0)));
+      d.vx *= drag; d.vy *= drag;
+      const sp = Math.hypot(d.vx, d.vy);
+      if (sp > cap){ d.vx *= cap / sp; d.vy *= cap / sp; }
+      d.x += d.vx * dt; d.y += d.vy * dt;
+
+      // soft walls — the floor opens when the scene falls
+      const xb = aspect / 2 - d.r0, yb = 0.5 - d.r0;
+      if (d.x < -xb){ d.x = -xb; d.vx = Math.abs(d.vx) * bounce; }
+      if (d.x >  xb){ d.x =  xb; d.vx = -Math.abs(d.vx) * bounce; }
+      if (d.y >  yb){ d.y =  yb; d.vy = -Math.abs(d.vy) * bounce; }
+      if (fall < 0.05 && d.y < -yb){ d.y = -yb; d.vy = Math.abs(d.vy) * bounce; }
+      if (d.y < -2.5) { d.y = -2.5; d.vy = 0; }   // parked offscreen until the well calls them back
+
+      // close enough to the hole: caught, and starts spiralling in
+      if (hunting && ptr.active && phase === 'play'){
+        const cdx = d.x - wellP.x, cdy = d.y - wellP.y, cdist = Math.hypot(cdx, cdy);
+        if (cdist < rh * 1.6 + d.r0 * 0.5){ d.eaten = true; d.eatP = 0; d.ea = Math.atan2(cdy, cdx); d.er = cdist; chime(); }
+      }
+    }
+    return m;
+  }
+
+  function frame(now){
+    const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+    const m = step(reduce ? dt * 0.4 : dt, now);
+
+    stepParticles(reduce ? dt * 0.4 : dt, now, m);
+    const tt = (now - t0) / 1000;
+    for (let i = 0; i < N; i++){
+      const d = drops[i];
+      buf[i * 4] = d.x; buf[i * 4 + 1] = d.y; buf[i * 4 + 2] = d.r0 * d.s * (d.eaten && d.deep ? -1 : 1);
+      buf[i * 4 + 3] = Math.max(-1, Math.min(1, d.hue + 0.45 * Math.sin(tt * d.hspd + d.hph))) + (d.eaten ? 4 : 0);   // hue drifts; +4 flags "caught"
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo);          // draw the scene off-screen first
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.BLEND);
+    gl.uniform1f(U.FADE, fade);
+    gl.uniform2f(U.SW, swTurn, swIn);
+    // the glow eases to one fixed level while anything is being swallowed, and eases out when nothing is —
+    // it never builds up or pulses brighter with each blob
+    const eating = drops.some(d => d.eaten && d.eatP < 1);
+    feed += ((eating ? 1 : 0) - feed) * (1 - Math.exp(-dt * 2));
+    gl.uniform1f(U.FEED, feed);
+    live += ((started ? 1 : 0) - live) * (1 - Math.exp(-dt * 1.5));   // eases the grain down after entering
+    gl.uniform1f(U.LIVE, live);
+    gl.uniform2f(U.R, canvas.width, canvas.height);
+    gl.uniform1f(U.T, (now - t0) / 1000);
+    gl.uniform2f(U.M, wellP.x, wellP.y);
+    gl.uniform1f(U.MASS, m);
+    gl.uniform3f(U.SH, shock.x, shock.y, shock.r);
+    gl.uniform1f(U.SHA, shock.a);
+    gl.uniform1f(U.FALL, fall);
+    curVis += ((ptr.active ? 1 : 0) - curVis) * (1 - Math.exp(-dt * 6));   // lens fades in/out as the pointer enters/leaves
+    gl.uniform3f(U.CUR, ptr.x, ptr.y, curVis * Math.min(0.8 + Math.hypot(ptr.vx, ptr.vy) * 0.12, 1.2));
+    gl.uniform4fv(U.B, buf);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // particles: soft additive points on top of the scene
+    const rE = 0;                                      // dust is no longer lensed (the hole is a well, not a lens)
+    for (let i = 0; i < NP; i++){
+      const pt = parts[i];
+      // dust is lensed too: draw it where the hole's gravity bends its light to (the main image of a
+      // point-mass lens, θ = (β + √(β² + 4θE²)) / 2) — specks near the hole smear round onto the Einstein ring
+      let px = pt.x, py = pt.y;
+      if (rE > 1e-4){
+        const bx = pt.x - wellP.x, by = pt.y - wellP.y, bl = Math.hypot(bx, by) + 1e-6;
+        const th = (bl + Math.sqrt(bl * bl + 4 * rE * rE)) / 2;
+        const fadeL = Math.exp(-Math.pow(bl / (rE * 2.2), 1.5));       // far dust barely bends (matches the blobs)
+        px = pt.x + (wellP.x + bx / bl * th - pt.x) * fadeL;
+        py = pt.y + (wellP.y + by / bl * th - pt.y) * fadeL;
+      }
+      pbuf[i * 4] = px; pbuf[i * 4 + 1] = py;
+      pbuf[i * 4 + 2] = pt.size * pt.vis * (canvas.height / 700);
+      const tw = 0.55 + 0.45 * Math.sin(tt * pt.tws + pt.twp);              // twinkle
+      pbuf[i * 4 + 3] = Math.floor(Math.min(pt.alpha * tw, 0.99) * 100) + pt.tint;
+    }
+    gl.useProgram(pprog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, pbuf);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform1f(PU.HALF, aspect / 2);
+    gl.uniform1f(PU.FADE, fade);
+    gl.drawArrays(gl.POINTS, 0, NP);
+
+    // post pass to the screen: chromatic aberration + grunge
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.disable(gl.BLEND);
+    gl.useProgram(postProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sceneTex);
+    gl.uniform1i(PostU.SCENE, 0);
+    gl.uniform2f(PostU.RES, canvas.width, canvas.height);
+    gl.uniform1f(PostU.FADE, fade);
+    gl.uniform1f(PostU.LIVE, live);
+    gl.uniform2f(PostU.HM, wellP.x, wellP.y); gl.uniform1f(PostU.HMASS, m); gl.uniform1f(PostU.HT, tt);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    stage.style.setProperty('--ui', 1 - fade);
+
+    requestAnimationFrame(frame);
+  }
+  // embedded in the site: wait (paused) until the page fades the game in; opened on its own: start now
+  let running = false;
+  function begin(){ if (running) return; running = true; last = performance.now(); requestAnimationFrame(frame);
+    setTimeout(autoStart, AUTO_START_MS); }
+  // the instructions show for a few seconds, then fade away and the game starts on its own (no click needed)
+  const AUTO_START_MS = 2750;
+  function autoStart(){ if (started) return; initAudio(); started = true; intro.classList.add('gone'); stage.classList.add('live'); }
+  if (window.parent === window) begin();
+  addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.type === 'gravity:start') begin();
+    if (d.type === 'gravity:setmute'){ muted = !!d.muted; if (master) master.gain.setTargetAtTime(muted ? 0 : SFX_VOL, actx.currentTime, 0.05); }
+    if (d.type === 'gravity:key') onKey({ key: d.key, ctrlKey: false, metaKey: false, altKey: false });
+  });
+})();
+</script>
+</body>
+</html>

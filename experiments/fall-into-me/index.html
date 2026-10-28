@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en" class="locked"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909"><title>Fall Into Me — A Time Between Seconds</title><meta name="description" content="Scroll into the eye."><style>
+*{box-sizing:border-box}html{background:#090909;scroll-behavior:auto}body{margin:0;color:#ece6da;font-family:Arial,Helvetica,sans-serif;overscroll-behavior:none}.stage{position:fixed;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}.stage canvas,.vig{position:absolute;inset:0;width:100%;height:100%}#world{touch-action:pan-y}#grains,#chromatic,.vig{pointer-events:none}#grains,#chromatic{mix-blend-mode:screen}.game{position:fixed;inset:0;z-index:5;background:#000;opacity:0;visibility:hidden;transition:opacity 2.2s ease,visibility 0s 2.2s}.game.on{opacity:1;visibility:visible;transition:opacity 2.2s ease}.game iframe{border:0;width:100%;height:100%;display:block}button{font:inherit;color:inherit;cursor:pointer}button:focus-visible{outline:2px solid #e4bb82;outline-offset:7px}.intro{position:fixed;inset:0;will-change:transform;pointer-events:none;z-index:2;text-align:center}.heading{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);transition:top 1.8s cubic-bezier(.65,0,.25,1),transform 1.8s cubic-bezier(.65,0,.25,1)}.ready .heading{top:calc(18% - 50px);transform:none}.eyebrow{line-height:11px;margin-bottom:max(3px,calc(2vh - 11px));font-size:9px;letter-spacing:.35em;color:#9e9487}.title{margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(50px,7.5vw,116px);letter-spacing:-.055em;line-height:1}.title em{font-weight:400}.invitation{position:absolute;bottom:15%;width:100%}.invitation #enterLabel{transition:opacity .35s}.invitation button{pointer-events:auto;background:none;border:0;font-size:9px;letter-spacing:.25em;padding:14px 24px}.arrow{display:block;margin:14px auto 0;width:1px;height:31px;background:linear-gradient(#e4cbaa,transparent);animation:breathe 2s infinite}@keyframes breathe{50%{opacity:.3;transform:translateY(7px)}}.curtain{position:fixed;inset:0;background:#000;z-index:1;pointer-events:none;transition:opacity 1.8s cubic-bezier(.4,0,.2,1)}.ready .curtain{opacity:0}html.locked,html.locked body{overflow:hidden}.eyebrow{opacity:0;animation:eyebrowIn 1.6s cubic-bezier(.2,.7,.2,1) .3s forwards}@keyframes eyebrowIn{from{opacity:0;letter-spacing:.9em;filter:blur(4px)}to{opacity:1;letter-spacing:.35em;filter:blur(0)}}.title .w{display:inline-block;overflow:hidden;padding:0 .06em .14em;margin:0 -.06em -.14em;vertical-align:top}.title .w>*{display:inline-block;transform:translateY(110%);opacity:0;animation:wordIn 1.3s cubic-bezier(.2,.8,.2,1) forwards}.title .w:nth-child(1)>*{animation-delay:.9s}.title .w:nth-child(2)>*{animation-delay:1.15s}.title .w:nth-child(3)>*{animation-delay:1.4s}@keyframes wordIn{to{transform:none;opacity:1}}.invitation{opacity:0;transform:translateY(8px);transition:opacity 1.2s ease .6s,transform 1.2s ease .6s}.ready .invitation{opacity:1;transform:none}@media(prefers-reduced-motion:reduce){.eyebrow,.title .w>*{animation:none;opacity:1;transform:none;filter:none;letter-spacing:.35em}.title .w>*{letter-spacing:inherit}}@media(max-width:600px){.ready .heading{top:calc(20% - 50px)}.eyebrow{margin-bottom:max(3px,calc(3vh - 11px))}.invitation{bottom:17%}}
+</style><script>addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({type:"fall:close"},"*");}},true);</script></head><body>
+<div class="curtain"></div><div class="stage" id="stage"><canvas id="world" aria-label="Scroll or use the arrow keys to move through the video."></canvas><canvas id="grains"></canvas><canvas id="chromatic" aria-hidden="true"></canvas><div class="vig" id="vig"></div></div>
+<div class="game" id="game"></div><div class="intro" id="intro"><div class="heading" id="heading"><div class="eyebrow">A Time Between Seconds</div><h1 class="title"><span class="w"><span>Fall</span></span> <span class="w"><em>into</em></span> <span class="w"><span>me.</span></span></h1></div><div class="invitation"><button id="enter"><span id="enterLabel">SCROLL TO ENTER</span><span class="arrow"></span></button></div></div>
+<script>
+'use strict';
+const canvas=document.getElementById('world'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),smooth=(a,b,v)=>{v=clamp((v-a)/(b-a));return v*v*(3-2*v)};
+const FRAMES=240; // assets/frames/f001.webp … f240.webp (the eye video, frame by frame)
+let W=innerWidth,H=innerHeight,dpr=1,p=0,last=0,drawn=-1,vig=null;
+function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;drawn=-1;
+// vignette sits above the video and the grains
+$('vig').style.background='radial-gradient(circle at 50% 50%,transparent '+(H*.15).toFixed(0)+'px,rgba(0,0,0,.8) '+(Math.max(W,H)*.65).toFixed(0)+'px)'}
+resize();addEventListener('resize',resize);
+
+// Frames are preloaded and decoded up front, so scrubbing never waits on a video seek.
+// They load in spread-out passes (every 32nd frame, then every 16th, …) so the whole
+// scroll range has coverage early; any gap borrows the nearest loaded frame.
+const imgs=new Array(FRAMES),ready=new Uint8Array(FRAMES);let loadedCount=0,allLoaded,firstLoaded;
+const allP=new Promise(r=>allLoaded=r),firstP=new Promise(r=>firstLoaded=r);
+const order=[],seen=new Set();for(let step=32;step>=1;step/=2)for(let i=0;i<FRAMES;i+=step)if(!seen.has(i)){seen.add(i);order.push(i)}
+order.forEach(i=>{let im=new Image();im.decoding='async';im.src='assets/frames/f'+String(i+1).padStart(3,'0')+'.webp';imgs[i]=im;
+const done=ok=>{if(ok){ready[i]=1;drawn=-1;if(i===0)firstLoaded()}if(++loadedCount===FRAMES)allLoaded()};
+im.onload=()=>(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(()=>done(true));im.onerror=()=>{if(i===0)firstLoaded();done(false)}});
+function nearest(i){for(let d=0;d<FRAMES;d++){if(i-d>=0&&ready[i-d])return i-d;if(i+d<FRAMES&&ready[i+d])return i+d}return -1}
+
+// Loading screen: stays black until the frames are in and the title has animated in.
+if('scrollRestoration' in history)history.scrollRestoration='manual';scrollTo(0,0);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,textDone=new Promise(r=>setTimeout(r,reduce?0:2600));
+const framesReady=Promise.race([allP,firstP.then(()=>new Promise(r=>setTimeout(r,15000)))]);
+
+// Opening resistance: scroll moves immediately, but initially only 12% reaches
+// the animation. Resistance eases off over 1.2 viewport heights, with a continuous
+// slope into the existing pacing. Raise START_GAIN for a lighter opening.
+const START_RESIST_SCREENS=1.2,START_GAIN=.12;
+const START_OFFSET=START_RESIST_SCREENS*(1-START_GAIN)/2;
+function resistedScreens(raw){
+ raw=Math.max(0,raw);
+ if(raw>=START_RESIST_SCREENS)return raw-START_OFFSET;
+ const u=raw/START_RESIST_SCREENS;
+ return START_RESIST_SCREENS*(START_GAIN*u+(1-START_GAIN)*(u*u*u-.5*u*u*u*u));
+}
+// Inverse keeps buttons, end-of-game rewind and replay aligned with real scroll.
+function nativeScreens(sc){
+ sc=Math.max(0,sc);
+ if(sc>=START_RESIST_SCREENS-START_OFFSET)return sc+START_OFFSET;
+ let lo=0,hi=START_RESIST_SCREENS;
+ for(let i=0;i<40;i++){const m=(lo+hi)/2;if(resistedScreens(m)<sc)lo=m;else hi=m}
+ return sc===0?0:(lo+hi)/2;
+}
+
+// Scroll pacing, measured in screen-heights of scrolling ("screens").
+// The eye/pupil zoom (frames 0–EYE_END) goes by quickly; the rest is drawn out.
+// Speeds blend smoothly around the hand-off so there is no sudden change.
+const EYE_FOLLOW=2.8; // how quickly the animation catches up with the scroll inside the eye (lower = heavier); 5 elsewhere
+const EYE_END=100,EYE_SCREENS=2.2,REST_SCREENS=8; // the eye is scrolled through more slowly (more resistance)
+const pace=[0];let totalScreens=0;{const fast=EYE_END/EYE_SCREENS,slow=(FRAMES-1-EYE_END)/REST_SCREENS,ds=.005;let f=0,sc=0;
+while(f<FRAMES-1){f+=(fast+(slow-fast)*smooth(EYE_SCREENS-.4,EYE_SCREENS+.4,sc))*ds;sc+=ds;pace.push(Math.min(f,FRAMES-1))}totalScreens=sc}
+document.body.style.height=(totalScreens+START_OFFSET+1.05)*100+'vh';
+function frameAt(sc){let x=clamp(sc/totalScreens)*(pace.length-1),i=Math.floor(x);return i>=pace.length-1?FRAMES-1:pace[i]+(pace[i+1]-pace[i])*(x-i)}
+
+// ── Video tilts slightly toward the mouse ─────────────────────────────
+// The canvas gets a small 3D tilt (CSS perspective, GPU-composited). It is enlarged
+// just enough that, even at full tilt, its edges never pull inside the window.
+const TILT_MAX={x:3.5,y:5}; // degrees: x = up/down, y = left/right
+const TEXT_DRIFT={x:10,y:6}; // px the intro text drifts toward the mouse
+let mouse=null,tilt={x:0,y:0},tiltScale=1,persp=1000;
+addEventListener('pointermove',e=>{mouse={x:e.clientX,y:e.clientY}});
+document.documentElement.addEventListener('pointerleave',()=>{mouse=null});
+function coverScale(){ // smallest scale whose tilted, projected outline still covers every window corner
+persp=Math.max(W,H)*1.4;const rx=TILT_MAX.x*Math.PI/180,ry=TILT_MAX.y*Math.PI/180;
+const proj=(x,y,S,ax,ay)=>{x*=S;y*=S;let z=0,x1=x*Math.cos(ay)+z*Math.sin(ay),z1=-x*Math.sin(ay)+z*Math.cos(ay),y2=y*Math.cos(ax)-z1*Math.sin(ax),z2=y*Math.sin(ax)+z1*Math.cos(ax),k=persp/(persp-z2);return [x1*k,y2*k]};
+const inside=(pt,q)=>{let sg=0;for(let i=0;i<4;i++){let a=q[i],b=q[(i+1)%4],c=(b[0]-a[0])*(pt[1]-a[1])-(b[1]-a[1])*(pt[0]-a[0]);if(c===0)continue;if(sg===0)sg=Math.sign(c);else if(Math.sign(c)!==sg)return false}return true};
+const hw=W/2,hh=H/2,corners=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]];
+for(let S=1;S<1.5;S+=.002){let ok=true;for(const ax of [-rx,rx])for(const ay of [-ry,ry]){let q=corners.map(c=>proj(c[0],c[1],S,ax,ay));if(!corners.every(c=>inside(c,q)))ok=false}if(ok)return S*1.004}return 1.5}
+function applyTilt(dt){let tx=0,ty=0;if(mouse){tx=clamp((mouse.y/H)*2-1,-1,1);ty=clamp((mouse.x/W)*2-1,-1,1)}
+let k=1-Math.exp(-dt*3);tilt.x+=(tx-tilt.x)*k;tilt.y+=(ty-tilt.y)*k;
+$('stage').style.transform='perspective('+persp.toFixed(0)+'px) rotateX('+(-tilt.x*TILT_MAX.x).toFixed(3)+'deg) rotateY('+(tilt.y*TILT_MAX.y).toFixed(3)+'deg) scale('+tiltScale.toFixed(4)+')';
+$('intro').style.transform='translate3d('+(tilt.y*TEXT_DRIFT.x).toFixed(2)+'px,'+(tilt.x*TEXT_DRIFT.y).toFixed(2)+'px,0)'}
+tiltScale=coverScale();addEventListener('resize',()=>{tiltScale=coverScale()});
+
+// ── Particles ───────────────────────────────────────────────────────────
+// Once the camera is through the pupil, the video dissolves into fine grains of sand.
+// Each grain takes its colour from the same spot in the current video frame
+// (pre-sampled into assets/particles.js, so this works even when the page is opened
+// as a local file), and the mouse scatters them; they drift back when it moves on.
+// Grains are drawn by the graphics card (WebGL points), with a CPU fallback.
+const PART_IN={from:90,to:100};
+const BG_VIDEO=.75;
+const PER_CELL=3; // grains per colour cell (density)
+// BG_VIDEO: how visible the original video stays behind the grains (0 = hidden, 1 = full) // frames over which the video turns into particles (while the pupil fills the screen)
+const PART={radius:.11,push:2600,drag:4.5,spring:18,damp:3.4,grain:.5}; // radius: fraction of the window's shorter side; grain: diameter in CSS pixels
+const GLOW={gamma:.45,gain:1.6,floor:.06,knee:.16}; // brightens grains for contrast against black; colours below `floor` stay dark
+let PM=0,PD=null,pal=null,pidx=null,PN=0,pox,poy,pvx,pvy,pjx,pjy,pgs,lastMouse=null,mvel={x:0,y:0},gPos=null,gCol=null,gCount=0;
+const GRAIN_K=[.8,.95,1.1,1.35]; // four grain sizes for a natural, sandy mix
+const particlesP=new Promise(res=>{let sc=document.createElement('script');sc.src='assets/particles.js';sc.onload=()=>{try{PD=window.PARTICLES;
+const dec=b=>{let s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
+pal=dec(PD.palette);PN=PD.w*PD.h;
+// brighten each palette colour (same hue, lifted brightness), keeping the faintest ones dark for contrast
+for(let i=3;i<pal.length;i+=3){let m=Math.max(pal[i],pal[i+1],pal[i+2])/255;if(!m)continue;let m2=Math.min(1,Math.pow(m,GLOW.gamma)*GLOW.gain)*smooth(GLOW.floor,GLOW.knee,m),k=m2/m;pal[i]=Math.min(255,pal[i]*k);pal[i+1]=Math.min(255,pal[i+1]*k);pal[i+2]=Math.min(255,pal[i+2]*k)}let rle=dec(PD.rle);pidx=new Uint8Array(PN*PD.count);
+for(let i=0,o=0;i<rle.length;){let v=rle[i++];if(v===0)o+=rle[i++];else pidx[o++]=v} // index 0 = empty (black)
+PM=PN*PER_CELL;pox=new Float32Array(PM);poy=new Float32Array(PM);pvx=new Float32Array(PM);pvy=new Float32Array(PM);pjx=new Float32Array(PM);pjy=new Float32Array(PM);pgs=new Uint8Array(PM);
+gPos=new Float32Array(PM*3);gCol=new Uint8Array(PM*4);
+const hash=(n,k)=>{let h=Math.sin(n*k)*43758.5453;return h-Math.floor(h)};
+for(let m=0;m<PM;m++){pjx[m]=hash(m,12.9898);pjy[m]=hash(m,78.233);pgs[m]=Math.floor(hash(m,39.425)*4)} // each grain sits at a random spot inside its cell
+PD.rle=null}catch(e){PD=null}res()};sc.onerror=()=>res();document.head.appendChild(sc)});
+
+// Physics + colour for every grain; fills gPos (x, y, diameter in CSS px) and gCol (rgba).
+function stepParticles(pos,dt){
+const sw=1600,sh=900,r=Math.max(W/sw,H/sh),x0=(W-sw*r)/2,y0=(H-sh*r)/2,cs=sw/PD.w*r,R=Math.min(W,H)*PART.radius,R2=R*R,dia=PART.grain,K=PER_CELL;
+let fi=clamp(pos-PD.start,0,PD.count-1),i0=Math.floor(fi),i1=Math.min(i0+1,PD.count-1),t=fi-i0,o0=i0*PN,o1=i1*PN;
+let mx=-1e9,my=-1e9;if(mouse){mx=mouse.x;my=mouse.y;if(lastMouse&&dt>0){mvel.x=clamp((mx-lastMouse.x)/dt,-3000,3000);mvel.y=clamp((my-lastMouse.y)/dt,-3000,3000)}lastMouse={x:mx,y:my}}else lastMouse=null;
+mvel.x*=Math.exp(-dt*10);mvel.y*=Math.exp(-dt*10);
+const damp=Math.exp(-PART.damp*dt),w=PD.w;let c=0;
+for(let n=0;n<PN;n++){let c0=pidx[o0+n],c1=pidx[o1+n],al=(c0?1-t:0)+(c1?t:0),m0=n*K;
+if(al<.04){let moving=false;for(let s=0;s<K;s++){let m=m0+s;if(pox[m]||poy[m]||pvx[m]||pvy[m]){moving=true;break}}if(!moving)continue} // empty and at rest
+let k0=c0*3,k1=c1*3,R_=0,G_=0,B_=0;
+if(c0&&c1){R_=pal[k0]+(pal[k1]-pal[k0])*t;G_=pal[k0+1]+(pal[k1+1]-pal[k0+1])*t;B_=pal[k0+2]+(pal[k1+2]-pal[k0+2])*t}else if(c0||c1){let k=c0?k0:k1;R_=pal[k];G_=pal[k+1];B_=pal[k+2]}
+let gx=n%w,gy=(n/w)|0,cxp=x0+gx*cs,cyp=y0+gy*cs;
+for(let s=0;s<K;s++){let m=m0+s,ox=pox[m],oy=poy[m],vx=pvx[m],vy=pvy[m];
+let bx=cxp+pjx[m]*cs,by=cyp+pjy[m]*cs,px=bx+ox,py=by+oy,dx=px-mx,dy=py-my,d2=dx*dx+dy*dy;
+if(d2<R2){let d=Math.sqrt(d2)||1,f=1-d/R;vx+=(dx/d*f*f*PART.push+mvel.x*f*PART.drag)*dt;vy+=(dy/d*f*f*PART.push+mvel.y*f*PART.drag)*dt}
+if(ox||oy||vx||vy){vx=(vx-ox*PART.spring*dt)*damp;vy=(vy-oy*PART.spring*dt)*damp;ox+=vx*dt;oy+=vy*dt;
+if(Math.abs(ox)<.01&&Math.abs(oy)<.01&&Math.abs(vx)<.01&&Math.abs(vy)<.01){ox=oy=vx=vy=0}pox[m]=ox;poy[m]=oy;pvx[m]=vx;pvy[m]=vy;px=bx+ox;py=by+oy}
+if(al<.04||px<-4||py<-4||px>W+4||py>H+4)continue;
+let j=c*3;gPos[j]=px;gPos[j+1]=py;gPos[j+2]=dia*GRAIN_K[pgs[m]];j=c*4;gCol[j]=R_;gCol[j+1]=G_;gCol[j+2]=B_;gCol[j+3]=al*255;c++}}
+gCount=c}
+
+// GPU renderer: every grain is a point on a transparent canvas layered above the video.
+// Grain positions are uploaded once; each frame the GPU looks up colours from small data
+// textures (the frame's colour indices + the palette), so the CPU only handles grains the
+// mouse is touching or that are still settling back.
+const gcv=$('grains');let G=null;
+(function initGrainsGL(){try{const g=gcv.getContext('webgl',{premultipliedAlpha:true,antialias:false,alpha:true});if(!g||g.getParameter(g.MAX_VERTEX_TEXTURE_IMAGE_UNITS)<3)return;
+const sh=(t,src)=>{let o=g.createShader(t);g.shaderSource(o,src);g.compileShader(o);if(!g.getShaderParameter(o,g.COMPILE_STATUS))throw 0;return o},pr=g.createProgram();
+g.attachShader(pr,sh(g.VERTEX_SHADER,`attribute vec2 a_cell;attribute float a_k;attribute float a_ox;attribute float a_oy;
+uniform sampler2D u_i0;uniform sampler2D u_i1;uniform sampler2D u_pal;uniform vec2 u_grid;uniform vec2 u_res;uniform vec2 u_org;uniform float u_cs;uniform float u_t;uniform float u_dpr;uniform float u_dia;
+varying vec4 v_c;varying float v_s;varying float v_f;
+void main(){vec2 uv=(floor(a_cell)+.5)/u_grid;float c0=floor(texture2D(u_i0,uv).r*255.+.5);float c1=floor(texture2D(u_i1,uv).r*255.+.5);
+float a0=c0>.5?1.-u_t:0.;float a1=c1>.5?u_t:0.;float al=a0+a1;
+if(al<.04){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=1.;v_c=vec4(0.);v_s=1.;v_f=0.;return;}
+vec3 p0=texture2D(u_pal,vec2((c0+.5)/256.,.5)).rgb;vec3 p1=texture2D(u_pal,vec2((c1+.5)/256.,.5)).rgb;
+vec3 col=(c0>.5&&c1>.5)?mix(p0,p1,u_t):(c0>.5?p0:p1);
+vec2 pos=u_org+a_cell*u_cs+vec2(a_ox,a_oy);vec2 c=pos/u_res*2.-1.;gl_Position=vec4(c.x,-c.y,0.,1.);
+float dd=a_k*u_dia*u_dpr;v_f=dd<1.?clamp(dd*dd*1.6+.12,0.,1.):1.;v_s=dd<1.?1.:dd+1.;gl_PointSize=v_s;v_c=vec4(col,al);}`));
+g.attachShader(pr,sh(g.FRAGMENT_SHADER,'precision mediump float;varying vec4 v_c;varying float v_s;varying float v_f;uniform float u_op;void main(){float a=1.;if(v_s>1.5){float d=length(gl_PointCoord-.5)*v_s;float rad=(v_s-1.)*.5;a=clamp(rad-d+.5,0.,1.);if(rad<1.)a=clamp(a/(rad*.5+.15),0.,1.);}a*=v_f*v_c.a*u_op;gl_FragColor=vec4(v_c.rgb*a,a);}'));
+g.linkProgram(pr);if(!g.getProgramParameter(pr,g.LINK_STATUS))throw 0;g.useProgram(pr);
+const U={};['u_i0','u_i1','u_pal','u_grid','u_res','u_org','u_cs','u_t','u_dpr','u_dia','u_op'].forEach(n=>U[n]=g.getUniformLocation(pr,n));
+const A={};['a_cell','a_k','a_ox','a_oy'].forEach(n=>A[n]=g.getAttribLocation(pr,n));
+G={g,pr,U,A,visible:false,prepared:false};
+g.enable(g.BLEND);g.blendFuncSeparate(g.ONE,g.ONE_MINUS_SRC_COLOR,g.ONE,g.ONE_MINUS_SRC_ALPHA);/* screen */g.clearColor(0,0,0,0)}catch(e){G=null}})();
+function sizeGrains(){gcv.width=W*dpr;gcv.height=H*dpr;if(G)G.g.viewport(0,0,gcv.width,gcv.height)}sizeGrains();addEventListener('resize',sizeGrains);
+function prepGL(){const {g,A,U}=G;
+const cell=new Float32Array(PM*2),kk=new Float32Array(PM),w=PD.w,K=PER_CELL;
+for(let m=0;m<PM;m++){let n=(m/K)|0;cell[m*2]=n%w+pjx[m];cell[m*2+1]=((n/w)|0)+pjy[m];kk[m]=GRAIN_K[pgs[m]]}
+const buf=(data,loc,size,usage)=>{let b=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,b);g.bufferData(g.ARRAY_BUFFER,data,usage);g.enableVertexAttribArray(loc);g.vertexAttribPointer(loc,size,g.FLOAT,false,0,0);return b};
+buf(cell,A.a_cell,2,g.STATIC_DRAW);buf(kk,A.a_k,1,g.STATIC_DRAW);G.bx=buf(pox,A.a_ox,1,g.DYNAMIC_DRAW);G.by=buf(poy,A.a_oy,1,g.DYNAMIC_DRAW);
+const tex=(unit)=>{let t=g.createTexture();g.activeTexture(g.TEXTURE0+unit);g.bindTexture(g.TEXTURE_2D,t);[g.TEXTURE_WRAP_S,g.TEXTURE_WRAP_T].forEach(k=>g.texParameteri(g.TEXTURE_2D,k,g.CLAMP_TO_EDGE));[g.TEXTURE_MIN_FILTER,g.TEXTURE_MAG_FILTER].forEach(k=>g.texParameteri(g.TEXTURE_2D,k,g.NEAREST));return t};
+g.pixelStorei(g.UNPACK_ALIGNMENT,1);
+G.t=[tex(0),tex(1)];G.tf=[-1,-1];for(let u=0;u<2;u++){g.activeTexture(g.TEXTURE0+u);g.texImage2D(g.TEXTURE_2D,0,g.LUMINANCE,PD.w,PD.h,0,g.LUMINANCE,g.UNSIGNED_BYTE,null)}
+tex(2);g.texImage2D(g.TEXTURE_2D,0,g.RGB,256,1,0,g.RGB,g.UNSIGNED_BYTE,pal);
+g.uniform1i(U.u_i0,0);g.uniform1i(U.u_i1,1);g.uniform1i(U.u_pal,2);g.uniform2f(U.u_grid,PD.w,PD.h);
+G.dmin=1e9;G.dmax=-1;G.prepared=true}
+// Mouse physics only for grains in reach of the cursor, plus grains still springing back.
+let act=null,actList=[];
+function physicsGL(dt){if(!act)act=new Uint8Array(PM);
+const sw=1600,sh=900,r=Math.max(W/sw,H/sh),x0=(W-sw*r)/2,y0=(H-sh*r)/2,cs=sw/PD.w*r,R=Math.min(W,H)*PART.radius,R2=R*R,K=PER_CELL,w=PD.w;
+let mx=-1e9,my=-1e9;if(mouse){mx=mouse.x;my=mouse.y;if(lastMouse&&dt>0){mvel.x=clamp((mx-lastMouse.x)/dt,-3000,3000);mvel.y=clamp((my-lastMouse.y)/dt,-3000,3000)}lastMouse={x:mx,y:my}}else lastMouse=null;
+mvel.x*=Math.exp(-dt*10);mvel.y*=Math.exp(-dt*10);
+if(mouse){let gxa=Math.max(0,Math.floor((mx-R-x0)/cs)-1),gxb=Math.min(w-1,Math.ceil((mx+R-x0)/cs)+1),gya=Math.max(0,Math.floor((my-R-y0)/cs)-1),gyb=Math.min(PD.h-1,Math.ceil((my+R-y0)/cs)+1);
+for(let gy=gya;gy<=gyb;gy++)for(let gx=gxa;gx<=gxb;gx++){let m0=(gy*w+gx)*K;for(let s=0;s<K;s++){let m=m0+s,px=x0+(gx+pjx[m])*cs+pox[m],py=y0+(gy+pjy[m])*cs+poy[m],dx=px-mx,dy=py-my,d2=dx*dx+dy*dy;
+if(d2<R2){let d=Math.sqrt(d2)||1,f=1-d/R;pvx[m]+=(dx/d*f*f*PART.push+mvel.x*f*PART.drag)*dt;pvy[m]+=(dy/d*f*f*PART.push+mvel.y*f*PART.drag)*dt;if(!act[m]){act[m]=1;actList.push(m)}}}}}
+const damp=Math.exp(-PART.damp*dt);
+for(let i=actList.length-1;i>=0;i--){let m=actList[i],ox=pox[m],oy=poy[m],vx=(pvx[m]-ox*PART.spring*dt)*damp,vy=(pvy[m]-oy*PART.spring*dt)*damp;ox+=vx*dt;oy+=vy*dt;
+if(Math.abs(ox)<.01&&Math.abs(oy)<.01&&Math.abs(vx)<.01&&Math.abs(vy)<.01){ox=oy=vx=vy=0;act[m]=0;actList[i]=actList[actList.length-1];actList.pop()}
+pox[m]=ox;poy[m]=oy;pvx[m]=vx;pvy[m]=vy;if(m<G.dmin)G.dmin=m;if(m>G.dmax)G.dmax=m}}
+function renderGrainsGL(pos,op){if(!G.prepared)prepGL();const {g,U}=G;
+const sw=1600,sh=900,r=Math.max(W/sw,H/sh),x0=(W-sw*r)/2,y0=(H-sh*r)/2,cs=sw/PD.w*r;
+let fi=clamp(pos-PD.start,0,PD.count-1),i0=Math.floor(fi),i1=Math.min(i0+1,PD.count-1),t=fi-i0;
+// make texture unit 0 hold frame i0 and unit 1 hold frame i1 (swap or upload as needed)
+if(G.tf[1]===i0&&G.tf[0]!==i0){G.t.reverse();G.tf.reverse();for(let u=0;u<2;u++){g.activeTexture(g.TEXTURE0+u);g.bindTexture(g.TEXTURE_2D,G.t[u])}}
+[i0,i1].forEach((fr,u)=>{if(G.tf[u]!==fr){g.activeTexture(g.TEXTURE0+u);g.bindTexture(g.TEXTURE_2D,G.t[u]);g.texSubImage2D(g.TEXTURE_2D,0,0,0,PD.w,PD.h,g.LUMINANCE,g.UNSIGNED_BYTE,pidx.subarray(fr*PN,(fr+1)*PN));G.tf[u]=fr}});
+if(G.dmax>=G.dmin){g.bindBuffer(g.ARRAY_BUFFER,G.bx);g.bufferSubData(g.ARRAY_BUFFER,G.dmin*4,pox.subarray(G.dmin,G.dmax+1));g.bindBuffer(g.ARRAY_BUFFER,G.by);g.bufferSubData(g.ARRAY_BUFFER,G.dmin*4,poy.subarray(G.dmin,G.dmax+1));G.dmin=1e9;G.dmax=-1}
+g.clear(g.COLOR_BUFFER_BIT);g.uniform2f(U.u_res,W,H);g.uniform2f(U.u_org,x0,y0);g.uniform1f(U.u_cs,cs);g.uniform1f(U.u_t,t);g.uniform1f(U.u_dpr,dpr);g.uniform1f(U.u_dia,PART.grain);g.uniform1f(U.u_op,op);
+g.drawArrays(g.POINTS,0,PM);G.visible=true}
+function hideGrains(){if(G&&G.visible){G.g.clear(G.g.COLOR_BUFFER_BIT);G.visible=false}}
+
+// CPU fallback (no WebGL): stamp the same grains into a pixel buffer, drawn into the main canvas.
+let pc=null,pcx=null,pimg=null,pbuf=null;
+function renderGrainsCPU(){let BW=canvas.width,BH=canvas.height;if(!pc||pc.width!==BW||pc.height!==BH){pc=document.createElement('canvas');pc.width=BW;pc.height=BH;pcx=pc.getContext('2d');pimg=pcx.createImageData(BW,BH);pbuf=new Uint32Array(pimg.data.buffer)}
+pbuf.fill(0);for(let c=0;c<gCount;c++){let x=gPos[c*3]*dpr,y=gPos[c*3+1]*dpr,rad=gPos[c*3+2]*dpr/2,n=Math.ceil(rad+.5),al=gCol[c*4+3]/255,rgb=(gCol[c*4+2]<<16)|(gCol[c*4+1]<<8)|gCol[c*4];
+let cx=Math.round(x),cy=Math.round(y);for(let yy=-n;yy<=n;yy++){let Y=cy+yy;if(Y<0||Y>=BH)continue;for(let xx=-n;xx<=n;xx++){let X=cx+xx;if(X<0||X>=BW)continue;
+let A=(255*al*clamp(rad+.5-Math.hypot(xx+cx-x,yy+cy-y)))|0,q=Y*BW+X;if(A>(pbuf[q]>>>24))pbuf[q]=(A<<24|rgb)>>>0}}}
+pcx.putImageData(pimg,0,0);return pc}
+// Loading screen lifts once the frames, the particle colours and the title animation are all ready.
+Promise.all([textDone,framesReady,Promise.race([particlesP,new Promise(r=>setTimeout(r,15000))])]).then(()=>{document.documentElement.classList.add('ready');document.documentElement.classList.remove('locked')});
+
+// ── Blue / orange chromatic dust, matching the game's dust shader palette ──
+const CHROMATIC={count:1400,opacity:.62,radius:100,push:900,spring:12,damp:5};
+const dustCanvas=$('chromatic'),dustCtx=dustCanvas.getContext('2d');
+const dustHash=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v)};
+const chromaticDust=Array.from({length:CHROMATIC.count},(_,i)=>({x:(dustHash(i*7+1)-.5)*16,y:(dustHash(i*7+2)-.5)*10,z:dustHash(i*7+3)*12,size:.45+dustHash(i*7+4)*1.05,warm:dustHash(i*7+5)>.58,phase:dustHash(i*7+6)*Math.PI*2,ox:0,oy:0,vx:0,vy:0}));
+function dustSprite(warm){const c=document.createElement('canvas');c.width=c.height=48;const x=c.getContext('2d');
+// Game palette: cold blue (.30,.52,1) and hot orange (1,.52,.12).
+const blue=[77,133,255],orange=[255,133,31],col=warm?orange:blue,fringe=warm?blue:orange;
+function glow(cx,cy,rgb,alpha,r){const g=x.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,'rgba('+rgb.join(',')+','+alpha+')');g.addColorStop(.23,'rgba('+rgb.join(',')+','+(alpha*.65)+')');g.addColorStop(1,'rgba('+rgb.join(',')+',0)');x.fillStyle=g;x.fillRect(0,0,48,48)}
+x.globalCompositeOperation='lighter';glow(24,24,col,.65,20);glow(warm?19:29,24,fringe,.4,11);glow(24,24,col,1,5);return c}
+const dustSprites=[dustSprite(false),dustSprite(true)];
+function sizeChromatic(){dustCanvas.width=W*dpr;dustCanvas.height=H*dpr}sizeChromatic();addEventListener('resize',sizeChromatic);
+function renderChromaticDust(pos,dt,now){
+const x=dustCtx;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+// Restrained over the eye; builds inside the pupil; follows the film into black.
+const opacity=CHROMATIC.opacity*(.18+.82*smooth(5,100,pos))*(1-smooth(228,238,pos));if(opacity<.001)return;
+const scale=Math.min(W,H)*.78,travel=pos/FRAMES*10,time=now*.001,R=CHROMATIC.radius,damp=Math.exp(-CHROMATIC.damp*dt);
+x.globalCompositeOperation='lighter';
+for(const q of chromaticDust){
+const z=((q.z-travel+time*.035)%12+12)%12+.35;
+const px=W/2+(q.x+Math.sin(time*.11+q.phase)*.12)*scale/z,py=H/2+(q.y+Math.cos(time*.09+q.phase)*.1)*scale/z;
+if(mouse){const dx=px+q.ox-mouse.x,dy=py+q.oy-mouse.y,d=Math.hypot(dx,dy);if(d<R){const force=(1-d/R)**2*CHROMATIC.push;const angle=d>.01?Math.atan2(dy,dx):q.phase;q.vx+=Math.cos(angle)*force*dt;q.vy+=Math.sin(angle)*force*dt}}
+q.vx=(q.vx-q.ox*CHROMATIC.spring*dt)*damp;q.vy=(q.vy-q.oy*CHROMATIC.spring*dt)*damp;q.ox+=q.vx*dt;q.oy+=q.vy*dt;
+const fade=smooth(.35,1.2,z)*(1-smooth(9,12.35,z)),size=clamp(q.size*3/z,.45,3.2),cx=px+q.ox,cy=py+q.oy;
+if(cx<-30||cx>W+30||cy<-30||cy>H+30)continue;
+// Bright core with a soft colored lens fringe; no expensive per-frame blur.
+x.globalAlpha=opacity*fade*(.4+.6*dustHash(q.phase));const diameter=size*9;
+x.drawImage(dustSprites[q.warm?1:0],cx-diameter/2,cy-diameter/2,diameter,diameter);
+}x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+
+// ── The game ──────────────────────────────────────────────────────────────
+// Loaded (paused) in its own frame as the animation nears its end; when the last frame is
+// reached, scrolling locks and the game fades in from black. It does not restart when it ends.
+const GAME_FADE=2.2; // seconds
+let gameFrame=null,gameLoaded=false,gameOn=false,gameShown=false;
+function loadGame(){if(gameFrame)return;gameFrame=document.createElement('iframe');gameFrame.src='assets/game.html';gameFrame.title='Gravity';gameFrame.allow='autoplay';
+gameFrame.addEventListener('load',()=>{gameLoaded=true;if(gameOn)startGame()});$('game').appendChild(gameFrame)}
+function startGame(){try{gameFrame.contentWindow.postMessage({type:'gravity:setmute',muted:musicMuted},'*');gameFrame.contentWindow.postMessage({type:'gravity:start'},'*')}catch(e){}gameFrame.focus()}
+function showGame(){if(gameOn)return;gameOn=true;loadGame();document.documentElement.classList.add('locked');$('game').classList.add('on');if(gameLoaded)startGame();
+setTimeout(()=>{gameShown=true;$('stage').style.visibility='hidden';$('intro').style.display='none'},GAME_FADE*1000+100)}
+addEventListener('keydown',e=>{if(gameOn&&gameFrame){try{gameFrame.contentWindow.postMessage({type:'gravity:key',key:e.key},'*')}catch(_){}}},true);
+
+// ── Ending: fast scroll back to the top, then loop ────────────────────────
+// When the game is completed (it ends on black), the page scrolls quickly back up to the top,
+// so the whole animation plays in reverse. At the eye it fades to black and the intro replays,
+// ready to go through the experience again.
+const REWIND_SECS=2.6;
+const LOOP_BLACK_MS=950,LOOP_TITLE_MS=1300,LAST_VISIBLE_FRAME=231; // black pause before the title replays · time the title shows on black · last frame before the video's black ending
+function screensForFrame(f){let lo=0,hi=totalScreens;for(let i=0;i<40;i++){let m=(lo+hi)/2;if(frameAt(m)<f)lo=m;else hi=m}return hi}
+let rewind=null,introHold=false,ending=false;
+const easeRewind=x=>x+x*x-x*x*x; // starts moving immediately, builds slightly, then lands with zero velocity
+function endGame(){if(ending||!gameOn)return;ending=true;
+introHold=true;drawn=-1;
+$('game').style.transition='none';$('game').classList.remove('on');void $('game').offsetWidth;$('game').style.transition=''; // the game is black, and so is the animation's last frame
+if(gameFrame){gameFrame.remove();gameFrame=null;gameLoaded=false} // a fresh game next time round
+gameShown=false;$('stage').style.visibility='visible';
+document.documentElement.classList.remove('locked');scrollTo(0,nativeScreens(p)*H); // a real scroll (input is blocked below while it runs)
+rewind={t0:performance.now(),from:Math.min(p,screensForFrame(LAST_VISIBLE_FRAME))};p=rewind.from;scrollTo(0,nativeScreens(p)*H);/* skip the video's black tail */last=performance.now();swoosh('full');swooshArmed=true; // starts with the reverse scroll, so it ends before the scroll reaches the top
+if(loopStopped){loopStopped=false;requestAnimationFrame(frame)}}
+const holdScroll=e=>{if(rewind){e.preventDefault()}};
+['wheel','touchmove'].forEach(ev=>addEventListener(ev,holdScroll,{passive:false}));
+addEventListener('keydown',e=>{if(rewind&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))e.preventDefault()},true);
+function finishRewind(){rewind=null;p=0;scrollTo(0,0);
+const root=document.documentElement;root.classList.add('locked');root.classList.remove('ready');  // fade to black, title back to centre
+setTimeout(()=>{gameOn=false;const it=$('intro');it.style.display='none';void it.offsetWidth;it.style.display='';introHold=false; // replays the title animation
+setTimeout(()=>{root.classList.remove('locked');root.classList.add('ready');ending=false},reduce?0:LOOP_TITLE_MS)},LOOP_BLACK_MS)}
+addEventListener('message',e=>{const d=e.data||{};
+if(d.type==='gravity:end')endGame();
+if(d.type==='gravity:gesture')unlockSound();
+if(d.type==='gravity:mute')setMusicMuted(d.muted)});
+
+// ── Game sound effects ────────────────────────────────────────────────────
+// The game sends each "gravitational-wave chirp" here and the page plays it, using the same
+// sound design as the game (inspiral sweep → glassy bell, with echo and reverb).
+const SFX_VOL=.06; // quieter than the music
+let sctx=null,sbus=null,smaster=null;
+function initSfx(){if(sctx){if(sctx.state==='suspended')sctx.resume();return}const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+sctx=new AC();smaster=sctx.createGain();smaster.gain.value=musicMuted?0:SFX_VOL;const comp=sctx.createDynamicsCompressor();smaster.connect(comp).connect(sctx.destination);
+sbus=sctx.createGain();sbus.connect(smaster);
+const delay=sctx.createDelay(1.5);delay.delayTime.value=.34;const fb=sctx.createGain();fb.gain.value=.42;const tone=sctx.createBiquadFilter();tone.type='lowpass';tone.frequency.value=2600;const echo=sctx.createGain();echo.gain.value=.38;
+sbus.connect(delay);delay.connect(tone).connect(fb).connect(delay);tone.connect(echo).connect(smaster);
+const verb=sctx.createConvolver(),len=Math.floor(sctx.sampleRate*3.2),ir=sctx.createBuffer(2,len,sctx.sampleRate);
+for(let c=0;c<2;c++){const ch=ir.getChannelData(c);for(let i=0;i<len;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6)}
+verb.buffer=ir;const wet=sctx.createGain();wet.gain.value=.75;sbus.connect(verb).connect(wet).connect(smaster);decodeSwooshes()}
+function gwChirp(fPeak,dur,sweepOct,level,bellDecay){if(!sctx||!sbus||sctx.state!=='running')return;
+const t=sctx.currentTime+.01,n=256,kEnd=Math.pow(2,sweepOct),c=1-Math.pow(kEnd,-8/3),f0=fPeak/kEnd,fc=new Float32Array(n),ac=new Float32Array(n);
+for(let i=0;i<n;i++){const u=i/(n-1),k=Math.pow(1-u*c,-.375);fc[i]=f0*k;ac[i]=level*.55*Math.pow(k/kEnd,2/3)*Math.min(1,u*10)}
+const sweep=sctx.createGain();sweep.gain.setValueCurveAtTime(ac,t,dur);sweep.gain.setValueAtTime(ac[n-1],t+dur+.02);sweep.gain.exponentialRampToValueAtTime(.0001,t+dur+.25);sweep.connect(sbus);
+const o=sctx.createOscillator();o.frequency.setValueCurveAtTime(fc,t,dur);o.frequency.setValueAtTime(fPeak,t+dur+.02);o.connect(sweep);o.start(t);o.stop(t+dur+.3);
+const tb=t+dur*.92;for(const [ratio,amp,dk] of [[1,.5,1],[1.003,.3,1],[2,.12,.7],[2.76,.14,.5],[5.4,.05,.25]]){const b=sctx.createOscillator(),g=sctx.createGain();b.frequency.value=fPeak*ratio;
+g.gain.setValueAtTime(0,tb);g.gain.linearRampToValueAtTime(amp*level,tb+.02);g.gain.exponentialRampToValueAtTime(.0001,tb+bellDecay*dk);b.connect(g).connect(sbus);b.start(tb);b.stop(tb+bellDecay*dk+.05)}}
+['pointerdown','keydown','touchend'].forEach(ev=>addEventListener(ev,initSfx,{passive:true}));
+addEventListener('message',e=>{const d=e.data||{};if(d.type==='gravity:chirp'&&Array.isArray(d.a)){try{gwChirp(...d.a)}catch(_){}}if(d.type==='gravity:gesture')initSfx()});
+
+// ── Sound start ───────────────────────────────────────────────────────────
+// The music tries to start as soon as the page opens. Chrome only allows that when it trusts
+// the site (e.g. a hosted site people have played sound on before); otherwise it waits for the
+// visitor's first click or key press anywhere (including in the game). Scrolling is never blocked.
+let soundUnlocked=false,unlockT=0;
+function unlockSound(){if(soundUnlocked)return;soundUnlocked=true;unlockT=performance.now();startMusic();initSfx()}
+function setEnterLabel(t){const l=$('enterLabel');if(!l||l.textContent===t)return;l.style.opacity=0;setTimeout(()=>{l.textContent=t;l.style.opacity=1},350)}
+['pointerdown','keydown','touchend'].forEach(ev=>addEventListener(ev,unlockSound,{passive:true}));
+let lastTry=0;addEventListener('scroll',()=>{if(!musicOn&&performance.now()-lastTry>1000){lastTry=performance.now();startMusic()}},{passive:true});
+
+// ── Swoosh ────────────────────────────────────────────────────────────────
+// A rising 2-second swoosh (it peaks at its very end): played the moment you start scrolling into
+// the eye, and the moment the fast scroll back up begins after the game.
+const SWOOSH_VOL=.85,SWOOSH_LEN=2.0,EYE_ENTER_FRAME=1; // plays as soon as the visitor starts scrolling from the eye
+let swooshArmed=true;
+// Both swooshes are decoded into memory ahead of time and played through Web Audio, so they start
+// instantly (no file loading at play time, and the MP3's silent lead-in is skipped).
+const swBuf={};let swGain=null;
+(function(){const sc=document.createElement('script');sc.src='assets/sfx.js';sc.onload=()=>{if(sctx)decodeSwooshes()};document.head.appendChild(sc)})();
+function decodeSwooshes(){if(!sctx||!window.SFX_DATA||swGain)return;swGain=sctx.createGain();swGain.gain.value=musicMuted?0:SWOOSH_VOL;swGain.connect(sctx.destination);
+for(const k in SFX_DATA){const bin=atob(SFX_DATA[k]),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+sctx.decodeAudioData(u.buffer).then(buf=>{const ch=buf.getChannelData(0);let i=0;while(i<ch.length&&Math.abs(ch[i])<.002)i++;swBuf[k]={buf,off:i/buf.sampleRate}}).catch(()=>{})}}
+const swFallback={enter:new Audio('assets/swoosh-enter.mp3'),full:new Audio('assets/swoosh.mp3')};Object.values(swFallback).forEach(a=>{a.preload='auto';a.volume=SWOOSH_VOL});
+function swoosh(k){if(musicMuted)return;k=k||'full';
+if(sctx&&sctx.state==='running'&&swBuf[k]){const src=sctx.createBufferSource();src.buffer=swBuf[k].buf;src.connect(swGain);src.start(0,swBuf[k].off);return}
+try{const a=swFallback[k];a.currentTime=0;a.play().catch(()=>{})}catch(_){}} // fallback before Web Audio is ready
+
+// entering the eye: fire on the scroll input itself (the moment the page moves, or a downward wheel at the top)
+function enterSwoosh(){if(swooshArmed&&!rewind&&!ending&&!gameOn){swooshArmed=false;swoosh('enter')}} // second half of the swoosh: straight into the build
+addEventListener('scroll',()=>{if(scrollY>2)enterSwoosh();else if(!rewind&&!ending)swooshArmed=true},{passive:true});
+addEventListener('wheel',e=>{if(e.deltaY>0&&scrollY<4&&document.documentElement.classList.contains('ready')&&!document.documentElement.classList.contains('locked'))enterSwoosh()},{passive:true});
+
+// ── Background sound ──────────────────────────────────────────────────────
+// Loops for the whole experience. Browsers only allow sound after the visitor clicks or
+// presses a key (scrolling alone doesn't count), so it starts on the first one. M mutes it.
+const MUSIC_VOL=.9;
+const music=new Audio('assets/ambient.mp3');music.loop=true;music.preload='auto';music.volume=0;
+let musicOn=false,musicMuted=false,musicFade=null;
+function rampMusic(to,secs){clearInterval(musicFade);const from=music.volume,t0=performance.now();musicFade=setInterval(()=>{let u=clamp((performance.now()-t0)/(secs*1000));music.volume=from+(to-from)*u;if(u>=1)clearInterval(musicFade)},50)}
+function startMusic(){if(musicOn)return;music.play().then(()=>{musicOn=true;rampMusic(musicMuted?0:MUSIC_VOL,3)}).catch(()=>{})}
+function setMusicMuted(m){musicMuted=m;if(swGain)swGain.gain.setTargetAtTime(m?0:SWOOSH_VOL,sctx.currentTime,.03);if(musicOn)rampMusic(m?0:MUSIC_VOL,.4);if(smaster)smaster.gain.setTargetAtTime(m?0:SFX_VOL,sctx.currentTime,.05)} // M mutes music and game sounds together
+startMusic(); // works straight away if the browser already allows it
+['pointerdown','keydown','touchend'].forEach(ev=>addEventListener(ev,startMusic,{passive:true}));
+addEventListener('keydown',e=>{if(!gameOn&&(e.key==='m'||e.key==='M')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setMusicMuted(!musicMuted)});
+
+function cover(src,alpha){let sw=src.naturalWidth||src.width,sh=src.naturalHeight||src.height;if(!sw||!sh)return;let r=Math.max(W/sw,H/sh),cw=W/r,ch=H/r;ctx.globalAlpha=alpha;ctx.drawImage(src,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,W,H);ctx.globalAlpha=1}
+
+let loopStopped=false;
+function frame(now){if(gameShown){loopStopped=true;return} // the game has taken over: the animation stops drawing
+let dt=Math.min((now-last)/1000,.05);last=now;
+let target=resistedScreens(scrollY/H),openingFollow=1.8+(EYE_FOLLOW-1.8)*smooth(0,START_RESIST_SCREENS-START_OFFSET,p),follow=openingFollow+(5-openingFollow)*smooth(EYE_SCREENS*.8,EYE_SCREENS*1.2,p);p+=(target-p)*(1-Math.exp(-dt*follow));if(Math.abs(target-p)<1e-4)p=target; // p = screens scrolled
+if(rewind){let u=clamp((now-rewind.t0)/(REWIND_SECS*1000));p=rewind.from*(1-easeRewind(u));scrollTo(0,nativeScreens(p)*H);if(u>=1)finishRewind()} // fast scroll back up: the page really scrolls, the animation plays in reverse
+// Position between frames; neighbouring frames are cross-blended for in-between motion.
+let pos=frameAt(p),key=Math.round(pos*64);applyTilt(dt);
+if(!rewind&&!gameOn){if(pos>FRAMES-40)loadGame();if(pos>=FRAMES-1.05)showGame()}
+let pm=PD?smooth(PART_IN.from,PART_IN.to,pos):0;if(pm>0)key='p'+now; // particles move every frame
+if(key!==drawn){drawn=key;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#090909';ctx.fillRect(0,0,W,H);
+let i=Math.floor(pos),f=pos-i,a=nearest(i),b=i+1<FRAMES&&ready[i+1]?i+1:-1;
+if(a>=0){let va=1-pm*(1-BG_VIDEO);cover(imgs[a],va);if(b>=0&&a===i&&f>.02)cover(imgs[b],f*va)}
+if(pm>0){if(G){physicsGL(dt);renderGrainsGL(pos,pm)}else{stepParticles(pos,dt);let pcv=renderGrainsCPU();ctx.globalAlpha=pm;ctx.globalCompositeOperation='screen';ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(pcv,0,0);ctx.globalCompositeOperation='source-over';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1}}else hideGrains();
+ctx.fillStyle='rgba(0,0,0,'+(.32*(1-smooth(.05,.6,p)))+')';ctx.fillRect(0,0,W,H);
+}
+renderChromaticDust(pos,dt,now);
+$('intro').style.opacity=1-smooth(.03,.45,p);$('intro').style.visibility=(p>.5||introHold)?'hidden':'visible';
+requestAnimationFrame(frame)}requestAnimationFrame(frame);
+
+function go(sc){scrollTo({top:nativeScreens(sc)*H,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+$('enter').onclick=()=>go(EYE_SCREENS);
+addEventListener('keydown',e=>{if(gameOn)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();scrollBy({top:(e.key==='ArrowDown'?1:-1)*H*.25,behavior:'smooth'})}if(e.key==='Escape')go(0)});
+</script><script>
+   let fallSavedMute=null;
+   addEventListener('message',e=>{
+    if(e.source===parent&&e.data){
+     if(e.data.type==='fall:mute'){setMusicMuted(!!e.data.muted);if(gameFrame)gameFrame.contentWindow.postMessage({type:'gravity:setmute',muted:musicMuted},'*');}
+     if(e.data.type==='fall:visibility'){if(e.data.hidden){fallSavedMute=musicMuted;setMusicMuted(true);}else if(fallSavedMute!==null){setMusicMuted(fallSavedMute);fallSavedMute=null;}}
+    }
+    if(gameFrame&&e.source===gameFrame.contentWindow&&e.data){if(e.data.type==='fall:escape')parent.postMessage({type:'fall:close'},'*');if(e.data.type==='gravity:mute')parent.postMessage({type:'fall:sound',muted:!!e.data.muted},'*');}
+   });
+   addEventListener('keydown',e=>{if(e.key.toLowerCase()==='m')setTimeout(()=>parent.postMessage({type:'fall:sound',muted:musicMuted},'*'),0);});
+   Promise.all([framesReady,textDone]).then(()=>parent.postMessage({type:'fall:ready'},'*'));
+  </script></body></html>

@@ -1,0 +1,8 @@
+
+/* Icon-only Professional / Sandbox switch. */
+.theme-switch.mode-switch{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;width:88px;height:44px;padding:4px;gap:4px;border-color:var(--h-muted);border-radius:999px;background:transparent;}
+.mode-switch .mode-label{display:flex;align-items:center;justify-content:center;min-width:0;padding:0;border-radius:999px;color:var(--h-muted);transition:background .2s ease,color .2s ease;}
+.mode-switch .mode-label svg{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.mode-switch[aria-checked="false"] .mode-professional,.mode-switch[aria-checked="true"] .mode-sandbox{background:var(--h-ink);color:var(--h-icon);}
+@media(max-width:700px){.theme-switch.mode-switch{width:84px;height:44px;}.mode-switch .mode-label svg{width:17px;height:17px;}}
+@media(prefers-reduced-motion:reduce){.mode-switch .mode-label{transition:none;}}

@@ -1,0 +1,9 @@
+
+/* First-visit spotlight: the controls remain live, with no blocking overlay. */
+#caseView .study-spotlight-layer{position:fixed;inset:0;z-index:24;pointer-events:none;color:var(--ink);animation:studySpotlightEnter .3s ease both;}
+#caseView .study-spotlight-ring{position:absolute;border-radius:999px;border:1px solid color-mix(in srgb,var(--ink) 30%,transparent);box-shadow:0 0 0 150vmax rgb(0 0 0 / .18);background:transparent;}
+#caseView .study-spotlight-labels{position:absolute;display:flex;align-items:center;justify-content:space-between;gap:14px;width:150px;transform:translateX(-50%);font:11px/1.5 var(--font-ui);letter-spacing:.01em;color:var(--ink);}
+#caseView .study-spotlight-labels span{white-space:nowrap;padding:4px 6px;border-radius:3px;background:var(--bg);}
+@keyframes studySpotlightEnter{from{opacity:0;}to{opacity:1;}}
+@media(prefers-reduced-motion:reduce){#caseView .study-spotlight-layer{animation:none;}}
+
