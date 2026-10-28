@@ -354,7 +354,7 @@ if(pm>0){if(G){physicsGL(dt);renderGrainsGL(pos,pm)}else{stepParticles(pos,dt);l
 ctx.fillStyle='rgba(0,0,0,'+(.32*(1-smooth(.05,.6,p)))+')';ctx.fillRect(0,0,W,H);
 }
 renderChromaticDust(pos,dt,now);
-$('intro').style.opacity=1-smooth(.03,.45,p);$('intro').style.visibility=(p>.5||introHold)?'hidden':'visible';
+$('intro').style.opacity=1-smooth(0,.35,p);$('intro').style.visibility=(p>.5||introHold)?'hidden':'visible';
 requestAnimationFrame(frame)}requestAnimationFrame(frame);
 
 function go(sc){scrollTo({top:nativeScreens(sc)*H,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
