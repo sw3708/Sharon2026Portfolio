@@ -5,9 +5,25 @@
 #caseView .study-opening .study-opening-title{font:600 clamp(48px,6.7vw,112px)/1.08 var(--font-ui,Helvetica,Arial,sans-serif);letter-spacing:-.055em;text-transform:none;margin:0;max-width:none;overflow:visible}
 #caseView .study-opening .study-opening-tagline{font:400 29px/1.3 Caveat,cursive;letter-spacing:0;text-transform:none;margin:24px 0 0;color:var(--cs-body,var(--muted,#66705e));max-width:none}
 #caseView .study-opening .study-opening-description{font:400 clamp(18px,2vw,28px)/1.5 var(--font-ui,Helvetica,Arial,sans-serif);letter-spacing:-.025em;margin:0;max-width:36ch;color:var(--cs-body,var(--muted,#5e685e))}
-#caseView .study-opening-somnus .study-opening-title{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.055em}
+#caseView .study-opening-somnus .study-opening-title{font-family:'DM Serif Display',Georgia,serif;font-weight:400;letter-spacing:-.055em}
 #caseView .study-opening-nyid .study-opening-title{font-family:'Avenir Next',Avenir,Helvetica,Arial,sans-serif;font-weight:600}
 #caseView .study-opening-nyid .study-opening-description{font-family:'Avenir Next',Avenir,Helvetica,Arial,sans-serif}
 #caseView .study-opening-puma-kiosk .study-opening-title{font-family:'DIN Condensed','Arial Narrow',Anton,sans-serif;font-weight:400;letter-spacing:-.02em;text-transform:uppercase}
 #caseView .study-opening-logo-animations .study-opening-title{font-family:Helvetica,'Helvetica Neue',Arial,sans-serif;font-weight:700}
 @media(max-width:700px){#caseView .study-opening{grid-template-columns:1fr;gap:24px}#caseView .study-opening .study-opening-title{font-size:clamp(46px,12vw,76px)}#caseView .study-opening-kicker{margin-bottom:20px}#caseView .study-opening .study-opening-description{font-size:18px;max-width:38ch}}
+
+/* Audit fixes: readable identities, compact metadata, visible reading mode. */
+#caseView.puma-case .pk-intro{align-items:start;gap:clamp(24px,5vw,70px)}
+#caseView.puma-case .pk-intro .pk-meta{margin-top:0}
+#caseView.case.study-switch-case .study-mode-switch{display:flex;width:auto;padding:4px 9px 4px 4px;gap:5px}
+#caseView .study-mode-switch .study-mode-label{width:34px;min-width:34px;min-height:34px}
+#caseView .study-opening-somnus .study-opening-description{font-family:Inter,Helvetica,Arial,sans-serif}
+#caseView .study-mode-visible{font:500 11px/1.2 var(--font-ui,Arial,sans-serif);padding:0 7px;white-space:nowrap}
+#caseView.logo-case :is(.la-pepsi,.la-slack,.la-rolex) .la-pdf-identity .la-figure{background:#e7e8e2;border-radius:12px;padding:24px;box-sizing:border-box}
+#caseView .la-date-source{font:11px/1.5 var(--font-ui);max-width:300px;text-align:center;color:var(--muted);margin-top:16px}
+#caseView .la-date-source summary{cursor:pointer}
+#caseView .la-motion-rationale{border-top:1px solid var(--line);margin:36px 0;padding-top:24px;max-width:850px}
+#caseView .la-motion-rationale h3{font-size:clamp(22px,3vw,34px);font-weight:400;margin:0 0 14px}
+#caseView .la-motion-rationale p{font-size:16px;line-height:1.65}
+.fall-experience footer{font-size:12px;color:#c7c3ce;line-height:1.6}
+@media(max-width:700px){#caseView .study-mode-visible{font-size:10px;padding:0 4px}.fall-experience footer{font-size:11px}#caseView.logo-case .la-pdf-identity .la-figure{max-width:300px}}

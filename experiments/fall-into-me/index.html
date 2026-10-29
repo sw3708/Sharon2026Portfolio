@@ -235,7 +235,7 @@ let gameFrame=null,gameLoaded=false,gameOn=false,gameShown=false;
 function loadGame(){if(gameFrame)return;gameFrame=document.createElement('iframe');gameFrame.src='assets/game.html';gameFrame.title='Gravity';gameFrame.allow='autoplay';
 gameFrame.addEventListener('load',()=>{gameLoaded=true;if(gameOn)startGame()});$('game').appendChild(gameFrame)}
 function startGame(){try{gameFrame.contentWindow.postMessage({type:'gravity:setmute',muted:musicMuted},'*');gameFrame.contentWindow.postMessage({type:'gravity:start'},'*')}catch(e){}gameFrame.focus()}
-function showGame(){if(gameOn)return;gameOn=true;loadGame();document.documentElement.classList.add('locked');$('game').classList.add('on');if(gameLoaded)startGame();
+function showGame(){if(gameOn)return;gameOn=true;parent.postMessage({type:'fall:phase',phase:'gravity'},'*');loadGame();document.documentElement.classList.add('locked');$('game').classList.add('on');if(gameLoaded)startGame();
 setTimeout(()=>{gameShown=true;$('stage').style.visibility='hidden';$('intro').style.display='none'},GAME_FADE*1000+100)}
 addEventListener('keydown',e=>{if(gameOn&&gameFrame){try{gameFrame.contentWindow.postMessage({type:'gravity:key',key:e.key},'*')}catch(_){}}},true);
 
@@ -259,7 +259,7 @@ if(loopStopped){loopStopped=false;requestAnimationFrame(frame)}}
 const holdScroll=e=>{if(rewind){e.preventDefault()}};
 ['wheel','touchmove'].forEach(ev=>addEventListener(ev,holdScroll,{passive:false}));
 addEventListener('keydown',e=>{if(rewind&&['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))e.preventDefault()},true);
-function finishRewind(){rewind=null;p=0;scrollTo(0,0);
+function finishRewind(){parent.postMessage({type:'fall:phase',phase:'intro'},'*');rewind=null;p=0;scrollTo(0,0);
 const root=document.documentElement;root.classList.add('locked');root.classList.remove('ready');  // fade to black, title back to centre
 setTimeout(()=>{gameOn=false;const it=$('intro');it.style.display='none';void it.offsetWidth;it.style.display='';introHold=false; // replays the title animation
 setTimeout(()=>{root.classList.remove('locked');root.classList.add('ready');ending=false},reduce?0:LOOP_TITLE_MS)},LOOP_BLACK_MS)}
