@@ -1,4 +1,27 @@
 
+  function applyStudyOpeningHeader(story,key){
+    const config={
+      somnus:['Somnus','Interactive · UI/UX · Motion','a descent into sleep','An interactive website that turns the sleep cycle into a scroll-based journey, revealing sleep stages and changes in the body.'],
+      nyid:['New York ID.','UI/UX','everything is on your phone','A mobile identification concept that brings everyday credentials into one place, with authentication and dedicated identification views.'],
+      buildscape:['Buildscape.','Interactive installation · Development · AI','built to be explored.','Stack everyday objects. Turn them into AI-generated architecture.'],
+      'puma-kiosk':['PUMA Kiosk.','UI/UX · Retail kiosk concept','find your perfect pair.','A guided footwear discovery experience for the NYC PUMA flagship, from personalized recommendations to trying on a pair.'],
+      'logo-animations':['Logo Animations.','Motion · Brand studies','identities in motion.','Six short logo reveals translating each brand’s character into movement.']
+    }[key];
+    if(!config)return;
+    const body=story.querySelector('.sn-panel .sn-panel-body');
+    if(!body)return;
+    body.querySelectorAll('.se-intro-title,.bs-intro,.la-intro,.se-heading,.ni-lead,.sf-lead,.la-brief').forEach(node=>node.remove());
+    const puma=body.querySelector('.pk-intro');
+    if(puma)puma.querySelectorAll('.sn-kicker,h1,.pk-handwritten,.pk-lead').forEach(node=>node.remove());
+    const header=document.createElement('header');header.className='study-opening study-opening-'+key;
+    const identity=document.createElement('div');identity.className='study-opening-identity';
+    const kicker=document.createElement('p');kicker.className='study-opening-kicker';kicker.textContent=config[1];
+    const title=document.createElement('h1');title.className='study-opening-title';title.textContent=config[0];
+    const tagline=document.createElement('p');tagline.className='study-opening-tagline';tagline.textContent=config[2];
+    const description=document.createElement('p');description.className='study-opening-description';description.textContent=config[3];
+    identity.append(kicker,title,tagline);header.append(identity,description);body.prepend(header);
+  }
+
   const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
   /* =========================================================
@@ -883,6 +906,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     snStory=document.createElement('article');snStory.className='sn-slide-deck somnus-editorial'+(key==='puma-kiosk'?' puma-editorial'+(full?' pk-complete':''):key==='logo-animations'?' logo-editorial'+(full?' la-complete':''):key==='buildscape'?' buildscape-editorial'+(full?' bs-complete':''):key==='somnus'?(full?' somnus-complete':''):' nyid-editorial'+(full?' nyid-complete':''));snStory.setAttribute('aria-label',title+' '+(full?'full study':'condensed study'));
     snStory.innerHTML='<div class="sn-slide-chrome"><button type="button" data-sn-back>← Back to work</button><span>'+title+' / Case study</span></div><button type="button" class="study-mode-switch" role="switch" aria-checked="'+full+'" aria-label="Full study" title="'+(full?'Switch to condensed study':'Switch to full study')+'"><span class="study-mode-label '+(!full?'selected':'')+'" title="Condensed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h12M4 18h8"/></svg></span><span class="study-mode-label '+(full?'selected':'')+'" title="Full study" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h8M8 18h5"/></svg></span></button><div class="sn-panel-stack">'+panels.join('')+'</div><nav class="cs-nav sn-slide-nav" aria-label="'+title+' sections"><div class="cs-line"></div><div class="cs-fill" id="sn-slide-fill"></div><div class="cs-dots">'+chapters.map(([id,label],i)=>'<button type="button" class="cs-dot" data-sn-index="'+i+'" data-label="'+label+'" aria-label="'+label+'"></button>').join('')+'</div></nav><span class="sn-slide-count" aria-live="off"></span><button class="cs-next sn-slide-next" type="button" aria-label="Next section"><svg viewBox="0 0 24 24"><path d="M12 4V20"/><path d="M6 14L12 20L18 14"/></svg><span class="cs-next-label">See next project</span></button>';
     if(key==='logo-animations')snStory.querySelector('.study-mode-switch').remove();
+    applyStudyOpeningHeader(snStory,key);
     caseStudyEl.appendChild(snStory);
     if(key==='nyid')snStory.insertAdjacentHTML('afterbegin',NY_PENCIL_DEFS);
     const curatedNext=nextVisibleWorkSlide(key);
