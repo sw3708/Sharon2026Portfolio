@@ -8,7 +8,7 @@
 'use strict';
 const canvas=document.getElementById('world'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),smooth=(a,b,v)=>{v=clamp((v-a)/(b-a));return v*v*(3-2*v)};
-const START_FRAME=30; // Skip one second of the 30 fps source sequence.
+const START_FRAME=90; // Skip three seconds total from the 30 fps source sequence.
 const FRAMES=240; // assets/frames/f001.webp … f240.webp (the eye video, frame by frame)
 let W=innerWidth,H=innerHeight,dpr=1,p=0,last=0,drawn=-1,vig=null;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;drawn=-1;
@@ -56,7 +56,7 @@ function nativeScreens(sc){
 // The eye/pupil zoom (frames 0–EYE_END) goes by quickly; the rest is drawn out.
 // Speeds blend smoothly around the hand-off so there is no sudden change.
 const EYE_FOLLOW=2.8; // how quickly the animation catches up with the scroll inside the eye (lower = heavier); 5 elsewhere
-const EYE_END=100,EYE_SCREENS=1.54,REST_SCREENS=8; // the eye is scrolled through more slowly (more resistance)
+const EYE_END=100,EYE_SCREENS=.22,REST_SCREENS=8; // the eye is scrolled through more slowly (more resistance)
 const pace=[START_FRAME];let totalScreens=0;{const fast=(EYE_END-START_FRAME)/EYE_SCREENS,slow=(FRAMES-1-EYE_END)/REST_SCREENS,ds=.005;let f=START_FRAME,sc=0;
 while(f<FRAMES-1){f+=(fast+(slow-fast)*smooth(EYE_SCREENS-.4,EYE_SCREENS+.4,sc))*ds;sc+=ds;pace.push(Math.min(f,FRAMES-1))}totalScreens=sc}
 document.body.style.height=(totalScreens+START_OFFSET+1.05)*100+'vh';
