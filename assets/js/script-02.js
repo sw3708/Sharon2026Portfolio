@@ -908,7 +908,17 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     if(key==='logo-animations')snStory.querySelector('.study-mode-switch').remove();
     applyStudyOpeningHeader(snStory,key);
     // Keep source slides out of the reading flow. Caption disclosures stay visible.
-    snStory.querySelectorAll('.sf-originals').forEach(node=>node.remove());
+    const sourceSlides=new Set(
+      [SN_COMPLETE_MEDIA,NY_MEDIA].flatMap(media=>Object.entries(media)
+        .filter(([name])=>/^page\d+$/.test(name)).map(([,asset])=>asset.src))
+    );
+    snStory.querySelectorAll('.sf-originals,.sf-source-pages,[data-source-page],[data-ny-source-page],iframe[src*=".pdf"],embed[type="application/pdf"],object[type="application/pdf"]').forEach(node=>node.remove());
+    snStory.querySelectorAll('img').forEach(image=>{
+      if(sourceSlides.has(image.getAttribute('src'))){
+        const figure=image.closest('figure');
+        (figure||image.closest('button')||image).remove();
+      }
+    });
     snStory.querySelectorAll('details').forEach(details=>{
       const section=document.createElement('section');
       section.className=details.className;
