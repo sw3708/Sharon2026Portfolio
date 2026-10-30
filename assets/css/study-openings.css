@@ -67,3 +67,5 @@ html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:1.2em;}
 #caseView.buildscape-case .audit-pipeline li{counter-increment:bs-step;margin:0;padding:0;display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;font-size:13px;line-height:1.5;}
 #caseView.buildscape-case .audit-pipeline li::before{content:counter(bs-step);position:static;display:block;width:auto;height:auto;margin:0;padding:0;background:none;border:0;color:inherit;font:inherit;}
 @media(max-width:700px){html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:.6em;}#caseView.buildscape-case .audit-pipeline{grid-template-columns:1fr;gap:12px;}}
+
+html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:-40px;}
