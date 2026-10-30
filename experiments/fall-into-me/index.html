@@ -8,6 +8,7 @@
 'use strict';
 const canvas=document.getElementById('world'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),smooth=(a,b,v)=>{v=clamp((v-a)/(b-a));return v*v*(3-2*v)};
+const START_FRAME=30; // Skip one second of the 30 fps source sequence.
 const FRAMES=240; // assets/frames/f001.webp … f240.webp (the eye video, frame by frame)
 let W=innerWidth,H=innerHeight,dpr=1,p=0,last=0,drawn=-1,vig=null;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;drawn=-1;
@@ -20,11 +21,11 @@ resize();addEventListener('resize',resize);
 // scroll range has coverage early; any gap borrows the nearest loaded frame.
 const imgs=new Array(FRAMES),ready=new Uint8Array(FRAMES);let loadedCount=0,allLoaded,firstLoaded;
 const allP=new Promise(r=>allLoaded=r),firstP=new Promise(r=>firstLoaded=r);
-const order=[],seen=new Set();for(let step=32;step>=1;step/=2)for(let i=0;i<FRAMES;i+=step)if(!seen.has(i)){seen.add(i);order.push(i)}
+const order=[START_FRAME],seen=new Set([START_FRAME]);for(let step=32;step>=1;step/=2)for(let i=0;i<FRAMES;i+=step)if(!seen.has(i)){seen.add(i);order.push(i)}
 order.forEach(i=>{let im=new Image();im.decoding='async';im.src='assets/frames/f'+String(i+1).padStart(3,'0')+'.webp';imgs[i]=im;
-const done=ok=>{if(ok){ready[i]=1;drawn=-1;if(i===0)firstLoaded()}if(++loadedCount===FRAMES)allLoaded()};
-im.onload=()=>(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(()=>done(true));im.onerror=()=>{if(i===0)firstLoaded();done(false)}});
-function nearest(i){for(let d=0;d<FRAMES;d++){if(i-d>=0&&ready[i-d])return i-d;if(i+d<FRAMES&&ready[i+d])return i+d}return -1}
+const done=ok=>{if(ok){ready[i]=1;drawn=-1;if(i===START_FRAME)firstLoaded()}if(++loadedCount===FRAMES)allLoaded()};
+im.onload=()=>(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(()=>done(true));im.onerror=()=>{if(i===START_FRAME)firstLoaded();done(false)}});
+function nearest(i){for(let d=0;d<FRAMES;d++){if(i-d>=START_FRAME&&ready[i-d])return i-d;if(i+d<FRAMES&&ready[i+d])return i+d}return -1}
 
 // Loading screen: stays black until the frames are in and the title has animated in.
 if('scrollRestoration' in history)history.scrollRestoration='manual';scrollTo(0,0);
@@ -55,8 +56,8 @@ function nativeScreens(sc){
 // The eye/pupil zoom (frames 0–EYE_END) goes by quickly; the rest is drawn out.
 // Speeds blend smoothly around the hand-off so there is no sudden change.
 const EYE_FOLLOW=2.8; // how quickly the animation catches up with the scroll inside the eye (lower = heavier); 5 elsewhere
-const EYE_END=100,EYE_SCREENS=2.2,REST_SCREENS=8; // the eye is scrolled through more slowly (more resistance)
-const pace=[0];let totalScreens=0;{const fast=EYE_END/EYE_SCREENS,slow=(FRAMES-1-EYE_END)/REST_SCREENS,ds=.005;let f=0,sc=0;
+const EYE_END=100,EYE_SCREENS=1.54,REST_SCREENS=8; // the eye is scrolled through more slowly (more resistance)
+const pace=[START_FRAME];let totalScreens=0;{const fast=(EYE_END-START_FRAME)/EYE_SCREENS,slow=(FRAMES-1-EYE_END)/REST_SCREENS,ds=.005;let f=START_FRAME,sc=0;
 while(f<FRAMES-1){f+=(fast+(slow-fast)*smooth(EYE_SCREENS-.4,EYE_SCREENS+.4,sc))*ds;sc+=ds;pace.push(Math.min(f,FRAMES-1))}totalScreens=sc}
 document.body.style.height=(totalScreens+START_OFFSET+1.05)*100+'vh';
 function frameAt(sc){let x=clamp(sc/totalScreens)*(pace.length-1),i=Math.floor(x);return i>=pace.length-1?FRAMES-1:pace[i]+(pace[i+1]-pace[i])*(x-i)}
