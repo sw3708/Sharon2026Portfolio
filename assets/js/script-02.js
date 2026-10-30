@@ -48,8 +48,8 @@
     function sync() {
       const dark = root.getAttribute('data-theme') === 'dark';
       btn.setAttribute('aria-checked', String(dark));
-      btn.setAttribute('aria-label', 'Sandbox mode');
-      btn.setAttribute('title', dark ? 'Switch to Professional' : 'Switch to Sandbox');
+      btn.setAttribute('aria-label', 'Play mode');
+      btn.setAttribute('title', dark ? 'Switch to Professional' : 'Switch to Play');
       btn.dataset.mode = dark ? 'sandbox' : 'professional';
       const workLink=document.querySelector('[data-work-mode-link]');
       if(workLink){workLink.href=dark?'#sandboxWork':'#work';workLink.textContent=dark?'Sandbox':'Work';}
@@ -937,7 +937,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
       snStory.querySelector('.study-opening').after(actions);
     }
     const modeControl=snStory.querySelector('.study-mode-switch');
-    if(modeControl){const label=document.createElement('span');label.className='study-mode-visible';label.textContent=full?'Full study':'Condensed';modeControl.append(label);}
+    if(modeControl){const label=document.createElement('span');label.className='study-mode-visible';label.textContent=full?'Full study':'Condensed';modeControl.querySelector('.study-mode-label.selected').append(label);}
     caseStudyEl.appendChild(snStory);
     if(key==='nyid')snStory.insertAdjacentHTML('afterbegin',NY_PENCIL_DEFS);
     const curatedNext=nextVisibleWorkSlide(key);
