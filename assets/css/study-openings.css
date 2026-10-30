@@ -27,3 +27,7 @@
 #caseView .la-motion-rationale p{font-size:16px;line-height:1.65}
 .fall-experience footer{font-size:12px;color:#c7c3ce;line-height:1.6}
 @media(max-width:700px){#caseView .study-mode-visible{font-size:10px;padding:0 4px}.fall-experience footer{font-size:11px}#caseView.logo-case .la-pdf-identity .la-figure{max-width:300px}}
+
+/* Center the active reading-mode label alongside the two icons. */
+#caseView.case.study-switch-case .study-mode-switch{align-items:center;justify-content:center;}
+#caseView .study-mode-visible{display:flex;align-items:center;justify-content:center;align-self:stretch;text-align:center;}
