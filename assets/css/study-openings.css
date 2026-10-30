@@ -68,4 +68,8 @@ html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:1.2em;}
 #caseView.buildscape-case .audit-pipeline li::before{content:counter(bs-step);position:static;display:block;width:auto;height:auto;margin:0;padding:0;background:none;border:0;color:inherit;font:inherit;}
 @media(max-width:700px){html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:.6em;}#caseView.buildscape-case .audit-pipeline{grid-template-columns:1fr;gap:12px;}}
 
-html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:-40px;}
+html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:-25px;}
+
+/* Equal inner padding on both sides of the active mode segment. */
+#themeToggle .mode-label{box-sizing:border-box;}
+#themeToggle[aria-checked="false"] .mode-professional,#themeToggle[aria-checked="true"] .mode-sandbox{padding-inline:11px;justify-content:center;}
