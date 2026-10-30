@@ -44,3 +44,11 @@
 #themeToggle[aria-checked="false"] .mode-professional,#themeToggle[aria-checked="true"] .mode-sandbox{padding:0 11px;}
 #themeToggle[aria-checked="false"] .mode-professional .mode-active-text,#themeToggle[aria-checked="true"] .mode-sandbox .mode-active-text{display:inline;}
 #themeToggle .mode-label svg{flex-shrink:0;}
+
+/* Animate the active label instead of switching its display abruptly. */
+#themeToggle .mode-active-text{display:block;max-width:0;overflow:hidden;opacity:0;transition:max-width .4s cubic-bezier(.2,.7,.2,1),opacity .25s ease;}
+#themeToggle .mode-label{gap:0;padding:0;transition:padding .4s cubic-bezier(.2,.7,.2,1),gap .4s cubic-bezier(.2,.7,.2,1),background .3s ease,color .3s ease;}
+#themeToggle[aria-checked="false"] .mode-professional,#themeToggle[aria-checked="true"] .mode-sandbox{gap:7px;padding:0 11px;}
+#themeToggle[aria-checked="false"] .mode-professional .mode-active-text,#themeToggle[aria-checked="true"] .mode-sandbox .mode-active-text{display:block;max-width:90px;opacity:1;}
+.hero-quote .q-line{white-space:normal;}
+@media(prefers-reduced-motion:reduce){#themeToggle .mode-label,#themeToggle .mode-active-text{transition:none;}}
