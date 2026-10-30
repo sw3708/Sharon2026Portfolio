@@ -60,3 +60,10 @@
 #caseView.buildscape-case .bs-contribution-grid h3{margin:0;font-size:16px;line-height:1.35;}
 #caseView.buildscape-case .bs-contribution-grid p{margin:0;max-width:29ch;font-size:14px;line-height:1.55;}
 @media(max-width:700px){#caseView.buildscape-case .bs-contribution-grid{grid-template-columns:1fr;gap:22px;}#caseView.buildscape-case .bs-contribution-grid article{grid-template-columns:24px 1fr;grid-template-rows:auto auto;column-gap:14px;row-gap:5px;}#caseView.buildscape-case .bs-contribution-grid svg{grid-row:1 / 3;}#caseView.buildscape-case .bs-contribution-grid p{grid-column:2;max-width:none;}}
+
+/* Align the final Play line and the Buildscape process with their content edges. */
+html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:1.2em;}
+#caseView.buildscape-case .audit-pipeline{list-style:none;counter-reset:bs-step;margin:24px 0 16px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;width:100%;box-sizing:border-box;}
+#caseView.buildscape-case .audit-pipeline li{counter-increment:bs-step;margin:0;padding:0;display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;font-size:13px;line-height:1.5;}
+#caseView.buildscape-case .audit-pipeline li::before{content:counter(bs-step);position:static;display:block;width:auto;height:auto;margin:0;padding:0;background:none;border:0;color:inherit;font:inherit;}
+@media(max-width:700px){html[data-theme="dark"] .hero-quote .q-line:nth-child(3){padding-left:.6em;}#caseView.buildscape-case .audit-pipeline{grid-template-columns:1fr;gap:12px;}}
