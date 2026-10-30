@@ -55,6 +55,15 @@
       if(workLink){workLink.href=dark?'#sandboxWork':'#work';workLink.textContent=dark?'Sandbox':'Work';}
       const heroTitle=document.querySelector('h1.hero-title'),word=heroTitle&&heroTitle.querySelector('.line:last-child>span');
       if(word&&!word.querySelector('.hero-letter'))word.textContent=dark?'Sandbox':'Portfolio';
+      const quote=document.querySelector('.hero-quote');
+      if(quote){
+        const lines=dark?['Creative play,','ongoing experiments,','and tech exploration.']:['Merging visual design &','creative technology.'];
+        quote.replaceChildren(...lines.map((text,index)=>{
+          const line=document.createElement('span');line.className='q-line'+(index?' q-indent':'');line.textContent=text;
+          if(!matchMedia('(prefers-reduced-motion: reduce)').matches)line.animate([{opacity:0,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:700,delay:150+index*110,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'});
+          return line;
+        }));
+      }
       window.dispatchEvent(new Event('portfolio-mode-change'));
     }
   })();
