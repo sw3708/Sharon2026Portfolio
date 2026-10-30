@@ -35,6 +35,18 @@
     let saved = null;
     try { saved = localStorage.getItem('theme'); } catch (e) { /* storage unavailable */ }
     if (saved === 'dark') root.setAttribute('data-theme', 'dark');
+    const animateHero=()=>{
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+      if(root.classList.contains('hero-intro')&&!root.classList.contains('hero-intro-complete'))return;
+      document.querySelectorAll('.hero-title,.hero-quote .q-line').forEach((node,index)=>{
+        node.getAnimations().forEach(animation=>animation.cancel());
+        node.animate([{opacity:0,translate:'0 18px'},{opacity:1,translate:'0 0'}],{duration:850,delay:index*120,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'});
+      });
+    };
+    const introObserver=new MutationObserver(()=>{
+      if(root.classList.contains('hero-intro-complete')){requestAnimationFrame(animateHero);introObserver.disconnect();}
+    });
+    introObserver.observe(root,{attributes:true,attributeFilter:['class']});
     sync();
 
     btn.addEventListener('click', () => {
@@ -60,11 +72,12 @@
         const lines=dark?['Creative play,','ongoing experiments,','and tech exploration.']:['Merging visual design &','creative technology.'];
         quote.replaceChildren(...lines.map((text,index)=>{
           const line=document.createElement('span');line.className='q-line'+(index?' q-indent':'');line.textContent=text;
-          if(!matchMedia('(prefers-reduced-motion: reduce)').matches)line.animate([{opacity:0,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:700,delay:150+index*110,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'});
+
           return line;
         }));
       }
       window.dispatchEvent(new Event('portfolio-mode-change'));
+      requestAnimationFrame(animateHero);
     }
   })();
 
