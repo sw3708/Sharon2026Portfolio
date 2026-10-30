@@ -574,7 +574,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     const note=(title,text)=>'<div class="ni-note"><h3>'+title+'</h3><p>'+text+'</p></div>';
     const list=items=>'<ul class="ni-list">'+items.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
     const pair=(a,b)=>'<div class="ni-pair">'+a+b+'</div>';
-    function originals(index){const pages=NY_PAGE_GROUPS[index];if(!full||!pages.length)return '';return '<details class="sf-originals"><summary>Original process deck pages · '+pages.join(', ')+'</summary><div class="sf-source-pages">'+pages.map(n=>'<figure data-ny-source-page="'+n+'">'+image('page'+n,'Original process deck / page '+n)+'<figcaption>Original deck page '+n+'</figcaption></figure>').join('')+'</div></details>';}
+    function originals(index){return '';}
     const panel=(index,title,body,extra='')=>'<section class="sn-panel se-panel ni-panel '+extra+'" id="ni-'+chapters[index][0]+'" style="--slide:'+index+'" aria-label="'+chapters[index][1]+'"><div class="sn-panel-body"><header class="se-heading"><span class="sn-kicker">'+(full?'Full study':'Condensed')+' / '+String(index+1).padStart(2,'0')+'</span><h2>'+title+'</h2></header>'+body+originals(index)+'</div></section>';
     const intro='<p class="ni-lead">A mobile identification concept that brings everyday credentials into one place.</p><dl class="se-project-meta"><div><dt>My role</dt><dd>UI/UX, visual design & motion</dd></div><div><dt>Timeline</dt><dd>Spring 2026</dd></div><div><dt>Deliverable</dt><dd>Mobile app concept & animated prototype</dd></div></dl>'+phones([['splash','Splash'],['age','Age identification'],['full','Full identification']]);
     const problem='<p>This concept focuses on finding and presenting credentials on a phone. The concerns below frame the design brief; the prototype does not demonstrate reduced fraud or replace a state credential system.</p>'+pair('<div class="ni-note"><h3>Physical limitations</h3>'+list(['Lost, stolen or damaged cards','Forgery and duplication','A card to carry everywhere'])+'</div>','<div class="ni-note"><h3>Verification & replacement</h3>'+list(['Checks that rely on visual inspection','Replacement costs','Identity-fraud concerns'])+'</div>');
@@ -705,7 +705,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     const bullets=items=>'<ul class="sf-list">'+items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
     const note=(title,body)=>'<div class="sf-note"><h3>'+title+'</h3>'+body+'</div>';
     const pair=(a,b)=>'<div class="sf-pair">'+a+b+'</div>';
-    function originals(i){const pages=SN_COMPLETE_PAGE_GROUPS[i];if(!pages.length)return '';return '<details class="sf-originals"><summary>Original process deck pages · '+pages.join(', ')+'</summary><div class="sf-source-pages">'+pages.map(n=>'<figure data-source-page="'+n+'">'+media('page'+n,'Original process deck / page '+n)+'<figcaption>Page '+n+' of 54</figcaption></figure>').join('')+'</div></details>';}
+    function originals(i){return '';}
     const panel=(i,title,body)=>'<section class="sn-panel se-panel sf-panel" id="sf-'+SN_COMPLETE_CHAPTERS[i][0]+'" style="--slide:'+i+'" aria-label="'+SN_COMPLETE_CHAPTERS[i][1]+'"><div class="sn-panel-body"><header class="se-heading"><span class="sn-kicker">Full study / '+String(i+1).padStart(2,'0')+'</span><h2>'+title+'</h2></header>'+body+originals(i)+'</div></section>';
     const route='<div class="sf-route" aria-label="Planned sleep-stage sequence">'+['Awake','NREM I','NREM II','NREM III','REM'].map(x=>'<span>'+x+'</span>').join('<span class="sf-route-arrow" aria-hidden="true">→</span>')+'</div>';
     return [
@@ -808,7 +808,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
       let body=head;
       if(full){
         const brief=LOGO_PDF_BRIEFS[item.key],identity=LOGO_MEDIA[item.key+'-identity']?item.key+'-identity':item.key+'-frame4';
-        body='<h2 class="la-pdf-brand-title">'+item.name+'</h2><section class="la-subsection" aria-labelledby="la-'+item.key+'-brand-heading"><h3 class="la-subsection-title" id="la-'+item.key+'-brand-heading">Logo &amp; Brand</h3><div class="la-pdf-intro"><div class="la-pdf-identity '+(item.key==='hot-wheels'?'la-identity-dark':'')+'">'+image(identity,item.name+' original logo reference')+(brief.date?'<details class="la-date-source"><summary>Logo-era label from original research</summary><p>'+brief.date+' — recorded in the process material; this is not the animation production date.</p></details>':'')+'</div><p class="la-pdf-description">'+escapeProjectText(brief.copy)+'</p></div></section>';
+        body='<h2 class="la-pdf-brand-title">'+item.name+'</h2><section class="la-subsection" aria-labelledby="la-'+item.key+'-brand-heading"><h3 class="la-subsection-title" id="la-'+item.key+'-brand-heading">Logo &amp; Brand</h3><div class="la-pdf-intro"><div class="la-pdf-identity '+(item.key==='hot-wheels'?'la-identity-dark':'')+'">'+image(identity,item.name+' original logo reference')+(brief.date?'<div class="la-date-source"><p>'+brief.date+' — recorded in the process material; this is not the animation production date.</p></div>':'')+'</div><p class="la-pdf-description">'+escapeProjectText(brief.copy)+'</p></div></section>';
         body+='<section class="la-subsection" aria-labelledby="la-'+item.key+'-references-heading"><h3 class="la-subsection-title" id="la-'+item.key+'-references-heading">Moodboard &amp; Keywords</h3><div class="la-direction la-integrated-direction"><div>'+image(item.key+'-mood',item.name+' moodboard','Moodboard')+'</div><div class="la-keyword-block"><h4>Keywords</h4><ul class="la-keywords">'+brief.keywords.map(word=>'<li>'+word+'</li>').join('')+'</ul></div></div></section>';
         body+='<div class="la-motion-rationale"><h3>'+item.idea+'</h3><p>'+item.copy+'</p><p class="la-sequence-label">'+item.motion+'</p></div><h3 class="la-section-title">Style frames / sequence</h3>'+frames(item);
         if(item.key==='google'||item.key==='slack')body+='<details class="la-earlier"><summary>Earlier / alternative style frames <span aria-hidden="true">+</span></summary><div>'+frames(item,true)+'</div></details>';
@@ -907,6 +907,25 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     snStory.innerHTML='<div class="sn-slide-chrome"><button type="button" data-sn-back>← Back to work</button><span>'+title+' / Case study</span></div><button type="button" class="study-mode-switch" role="switch" aria-checked="'+full+'" aria-label="Full study" title="'+(full?'Switch to condensed study':'Switch to full study')+'"><span class="study-mode-label '+(!full?'selected':'')+'" title="Condensed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h12M4 18h8"/></svg></span><span class="study-mode-label '+(full?'selected':'')+'" title="Full study" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h8M8 18h5"/></svg></span></button><div class="sn-panel-stack">'+panels.join('')+'</div><nav class="cs-nav sn-slide-nav" aria-label="'+title+' sections"><div class="cs-line"></div><div class="cs-fill" id="sn-slide-fill"></div><div class="cs-dots">'+chapters.map(([id,label],i)=>'<button type="button" class="cs-dot" data-sn-index="'+i+'" data-label="'+label+'" aria-label="'+label+'"></button>').join('')+'</div></nav><span class="sn-slide-count" aria-live="off"></span><button class="cs-next sn-slide-next" type="button" aria-label="Next section"><svg viewBox="0 0 24 24"><path d="M12 4V20"/><path d="M6 14L12 20L18 14"/></svg><span class="cs-next-label">See next project</span></button>';
     if(key==='logo-animations')snStory.querySelector('.study-mode-switch').remove();
     applyStudyOpeningHeader(snStory,key);
+    // Keep source slides out of the reading flow. Caption disclosures stay visible.
+    snStory.querySelectorAll('.sf-originals').forEach(node=>node.remove());
+    snStory.querySelectorAll('details').forEach(details=>{
+      const section=document.createElement('section');
+      section.className=details.className;
+      const summary=details.querySelector('summary');
+      if(summary){const heading=document.createElement('h3');heading.textContent=summary.textContent.replace(/\s*\+\s*$/,'');section.appendChild(heading);summary.remove();}
+      while(details.firstChild)section.appendChild(details.firstChild);
+      details.replaceWith(section);
+    });
+    const studyPDF={somnus:SN_ASSETS.deck,nyid:NY_ASSETS.deck}[key];
+    if(studyPDF){
+      const actions=document.createElement('div');actions.className='sn-actions study-pdf-download';
+      const link=document.createElement('a');link.className='sn-action';
+      link.href=studyPDF;link.download=key+'-full-case-study.pdf';
+      link.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg> Download full case study PDF';
+      actions.appendChild(link);
+      snStory.querySelector('.study-opening').after(actions);
+    }
     const modeControl=snStory.querySelector('.study-mode-switch');
     if(modeControl){const label=document.createElement('span');label.className='study-mode-visible';label.textContent=full?'Full study':'Condensed';modeControl.append(label);}
     caseStudyEl.appendChild(snStory);
