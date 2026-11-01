@@ -42,8 +42,8 @@ function resistedScreens(raw){
  if(raw>=START_RESIST_SCREENS)return raw-START_OFFSET;
  const u=raw/START_RESIST_SCREENS;
  const sc=START_RESIST_SCREENS*(START_GAIN*u+(1-START_GAIN)*(u*u*u-.5*u*u*u*u));
- // Ease the first 12 source frames (0.5 seconds), then blend into the existing response.
- return sc+.35*sc*(1-smooth(0,screensForFrame(START_FRAME+12),sc));
+ // Ease the first 18 source frames (0.75 seconds), then blend into the existing response.
+ return sc+.35*sc*(1-smooth(0,screensForFrame(START_FRAME+18),sc));
 }
 // Inverse keeps buttons, end-of-game rewind and replay aligned with real scroll.
 function nativeScreens(sc){
