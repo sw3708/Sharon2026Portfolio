@@ -3,7 +3,7 @@
 /* The supplied experiment runs in an isolated document and is created only on demand. */
 (() => {
  let player=null,opener=null,urls=[],frame=null,muted=false,escapeBridge=null,readyTimer=0;
- function buildURL(){return new URL('experiments/fall-into-me/index.html',document.baseURI).href;}
+ function buildURL(){return new URL('experiments/fall-into-me/index.html?v=uncut-original-20261101',document.baseURI).href;}
  function close(){if(player&&player.open)player.close();}
  window.openFallExperience=source=>{
   if(player)return;
