@@ -8,10 +8,11 @@ const WORK_COVER_CLIP = 'assets/videos/113535dec7fdb90e.mp4';
   const video = document.createElement('video');
   video.className = 'work-cover-video';
   video.muted = true; video.defaultMuted = true; video.loop = false;
-  video.playsInline = true; video.preload = 'none';
+  video.playsInline = true; video.preload = 'auto';
   video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
   video.setAttribute('aria-hidden', 'true');
-  video.poster = poster.src;
+  // Start fetching early and show decoded video only, never an image poster.
+  video.src = WORK_COVER_CLIP;
   background.appendChild(video);
   background.classList.add('has-work-video');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
