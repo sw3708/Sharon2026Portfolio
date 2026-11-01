@@ -8,7 +8,7 @@
 'use strict';
 const canvas=document.getElementById('world'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),smooth=(a,b,v)=>{v=clamp((v-a)/(b-a));return v*v*(3-2*v)};
-const START_FRAME=24; // Skip the first second of the 24 fps original.
+const START_FRAME=36; // Skip the first 1.5 seconds of the 24 fps original.
 const FRAMES=240; // assets/frames/f001.webp … f240.webp (the eye video, frame by frame)
 let W=innerWidth,H=innerHeight,dpr=1,p=0,last=0,drawn=-1,vig=null;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;drawn=-1;
