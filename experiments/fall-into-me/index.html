@@ -8,7 +8,7 @@
 'use strict';
 const canvas=document.getElementById('world'),ctx=canvas.getContext('2d'),$=id=>document.getElementById(id);
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),smooth=(a,b,v)=>{v=clamp((v-a)/(b-a));return v*v*(3-2*v)};
-const START_FRAME=18; // Skip exactly 0.75 seconds of the 24 fps original.
+const START_FRAME=6; // Skip exactly 0.25 seconds of the 24 fps original.
 const FRAMES=240; // assets/frames/f001.webp … f240.webp (the eye video, frame by frame)
 let W=innerWidth,H=innerHeight,dpr=1,p=0,last=0,drawn=-1,vig=null;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;drawn=-1;
@@ -32,10 +32,10 @@ if('scrollRestoration' in history)history.scrollRestoration='manual';scrollTo(0,
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,textDone=new Promise(r=>setTimeout(r,reduce?0:2600));
 const framesReady=Promise.race([allP,firstP.then(()=>new Promise(r=>setTimeout(r,15000)))]);
 
-// Opening resistance: scroll moves immediately, but initially only 12% reaches
-// the animation. Resistance eases off over 1.2 viewport heights, with a continuous
+// Opening resistance: scroll moves immediately, with 35% initially reaching
+// the animation. Resistance eases off over 0.8 viewport heights, with a continuous
 // slope into the existing pacing. Raise START_GAIN for a lighter opening.
-const START_RESIST_SCREENS=1.2,START_GAIN=.12;
+const START_RESIST_SCREENS=.8,START_GAIN=.35;
 const START_OFFSET=START_RESIST_SCREENS*(1-START_GAIN)/2;
 function resistedScreens(raw){
  raw=Math.max(0,raw);
@@ -342,7 +342,7 @@ function cover(src,alpha){let sw=src.naturalWidth||src.width,sh=src.naturalHeigh
 let loopStopped=false;
 function frame(now){if(gameShown){loopStopped=true;return} // the game has taken over: the animation stops drawing
 let dt=Math.min((now-last)/1000,.05);last=now;
-let target=resistedScreens(scrollY/H),openingFollow=1.8+(EYE_FOLLOW-1.8)*smooth(0,START_RESIST_SCREENS-START_OFFSET,p),follow=openingFollow+(5-openingFollow)*smooth(EYE_SCREENS*.8,EYE_SCREENS*1.2,p);p+=(target-p)*(1-Math.exp(-dt*follow));if(Math.abs(target-p)<1e-4)p=target; // p = screens scrolled
+let target=resistedScreens(scrollY/H),openingFollow=2.6+(EYE_FOLLOW-2.6)*smooth(0,START_RESIST_SCREENS-START_OFFSET,p),follow=openingFollow+(5-openingFollow)*smooth(EYE_SCREENS*.8,EYE_SCREENS*1.2,p);p+=(target-p)*(1-Math.exp(-dt*follow));if(Math.abs(target-p)<1e-4)p=target; // p = screens scrolled
 if(rewind){let u=clamp((now-rewind.t0)/(REWIND_SECS*1000));p=rewind.from*(1-easeRewind(u));scrollTo(0,nativeScreens(p)*H);if(u>=1)finishRewind()} // fast scroll back up: the page really scrolls, the animation plays in reverse
 // Position between frames; neighbouring frames are cross-blended for in-between motion.
 let pos=frameAt(p),key=Math.round(pos*64);applyTilt(dt);
