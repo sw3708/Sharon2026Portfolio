@@ -15,8 +15,11 @@ for name in ['index.html','.nojekyll','assets','experiments']:
 categories = ('ui-ux', 'interactive', 'motion', '3d', 'vibe-coding')
 routes = {'ux': 'ui-ux', 'interactive': 'interactive', 'motion': 'motion',
           '3d': '3d', 'creative-technology': 'vibe-coding', 'vibe-coding': 'vibe-coding'}
+creative_order = ('vibe-coding', 'interactive', 'ui-ux', 'motion', '3d')
 for slug, category in routes.items():
-    order = (category, *(item for item in categories if item != category))
+    order = creative_order if category == 'vibe-coding' else (
+        category, *(item for item in categories if item != category)
+    )
     target = '../?order=' + '%2C'.join(order)
     page = OUT / slug / 'index.html'
     page.parent.mkdir()
