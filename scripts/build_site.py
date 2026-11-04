@@ -13,8 +13,9 @@ for name in ['index.html','.nojekyll','assets','experiments']:
 
 # Open the existing sorter with the requested category first.
 categories = ('ui-ux', 'interactive', 'motion', '3d', 'vibe-coding')
-for category in categories:
-    slug = 'ux' if category == 'ui-ux' else category
+routes = {'ux': 'ui-ux', 'interactive': 'interactive', 'motion': 'motion',
+          '3d': '3d', 'creative-technology': 'vibe-coding', 'vibe-coding': 'vibe-coding'}
+for slug, category in routes.items():
     order = (category, *(item for item in categories if item != category))
     target = '../?order=' + '%2C'.join(order)
     page = OUT / slug / 'index.html'
