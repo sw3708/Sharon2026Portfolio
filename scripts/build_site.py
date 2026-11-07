@@ -23,6 +23,8 @@ for slug, category in routes.items():
         category, *(item for item in categories if item != category)
     )
     target = '../?order=' + '%2C'.join(order)
+    if slug == 'multimedia':
+        target += '&amp;projects=logo-animations%2Cpuma-kiosk%2Cnyid'
     page = OUT / slug / 'index.html'
     page.parent.mkdir()
     page.write_text(f'''<!doctype html>

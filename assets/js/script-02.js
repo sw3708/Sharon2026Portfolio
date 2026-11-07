@@ -94,6 +94,7 @@
   const WORK_FILTER_KEYS=['motion','ui-ux','interactive','3d','vibe-coding'];
   const PRIORITY_LABELS={motion:'Motion','ui-ux':'UI/UX',interactive:'Interactive','3d':'3D','vibe-coding':'Vibe Coding'};
   let featuredProjectKeys=['somnus','nyid','buildscape'],hasCustomPriority=false;
+  let projectPriority=[];
   const priorityRow=document.getElementById('workPriorityRow');
   const priorityButtons=[...priorityRow.querySelectorAll('[data-work-priority]')];
   let categoryOrder=[...WORK_FILTER_KEYS],cur=0,priorityDrag=null;
@@ -109,11 +110,11 @@
   window.addEventListener('scroll',()=>{if(coverRaf)return;coverRaf=true;requestAnimationFrame(()=>{coverRaf=false;updateVisibleCover();});},{passive:true});
   window.addEventListener('resize',updateVisibleCover);
   function normalizeWorkOrder(raw){return [...new Set([...raw.map(key=>key==='vibe-code'?'vibe-coding':key).filter(key=>WORK_FILTER_KEYS.includes(key)),...WORK_FILTER_KEYS])];}
-  function restoreWorkFilters(){const params=new URL(window.location.href).searchParams;const raw=(params.get('order')||params.get('focus')||'').split(',');hasCustomPriority=raw.some(key=>WORK_FILTER_KEYS.includes(key)||key==='vibe-code');categoryOrder=normalizeWorkOrder(raw);}
-  function workFilterURL(base){const url=new URL(base);url.searchParams.delete('focus');url.searchParams.delete('projects');url.searchParams.delete('order');if(hasCustomPriority)url.searchParams.set('order',categoryOrder.join(','));return url;}
+  function restoreWorkFilters(){const params=new URL(window.location.href).searchParams;const raw=(params.get('order')||params.get('focus')||'').split(',');hasCustomPriority=raw.some(key=>WORK_FILTER_KEYS.includes(key)||key==='vibe-code');categoryOrder=normalizeWorkOrder(raw);projectPriority=[...new Set((params.get('projects')||'').split(',').filter(key=>PROJECT_CATALOG[key]&&!PROJECT_CATALOG[key].sandbox))];}
+  function workFilterURL(base){const url=new URL(base);url.searchParams.delete('focus');url.searchParams.delete('projects');url.searchParams.delete('order');if(hasCustomPriority)url.searchParams.set('order',categoryOrder.join(','));if(projectPriority.length)url.searchParams.set('projects',projectPriority.join(','));return url;}
   const CATEGORY_PROJECT_ORDER={motion:['logo-animations','somnus'],'ui-ux':['nyid','puma-kiosk','somnus'],interactive:['somnus','buildscape'],'vibe-coding':['buildscape'],'3d':[]};
   function rankedProjectKeys(){
-    const keys=Object.keys(PROJECT_CATALOG).filter(key=>!PROJECT_CATALOG[key].sandbox);if(!hasCustomPriority)return keys;
+    const keys=Object.keys(PROJECT_CATALOG).filter(key=>!PROJECT_CATALOG[key].sandbox);if(projectPriority.length)return [...projectPriority,...keys.filter(key=>!projectPriority.includes(key))];if(!hasCustomPriority)return keys;
     const rank=key=>{const category=categoryOrder.findIndex(tag=>PROJECT_CATALOG[key].categories.includes(tag));return [category<0?categoryOrder.length:category,category<0?99:CATEGORY_PROJECT_ORDER[categoryOrder[category]].indexOf(key)];};
     return keys.sort((a,b)=>{const ar=rank(a),br=rank(b);return ar[0]-br[0]||ar[1]-br[1];});
   }
@@ -136,7 +137,7 @@
     if(cancel)categoryOrder=drag.original;
     drag.button.classList.remove('is-dragging');if(drag.ghost)drag.ghost.remove();
     if(drag.button.hasPointerCapture(drag.id))drag.button.releasePointerCapture(drag.id);
-    if(drag.moved&&!cancel&&categoryOrder.join(',')!==drag.original.join(',')){hasCustomPriority=true;applyWorkFilters();}else syncPriorityPills(true);
+    if(drag.moved&&!cancel&&categoryOrder.join(',')!==drag.original.join(',')){projectPriority=[];hasCustomPriority=true;applyWorkFilters();}else syncPriorityPills(true);
     drag.button.focus({preventScroll:true});
   }
   priorityButtons.forEach(button=>{
@@ -163,7 +164,7 @@
       if(e.key==='Escape'&&priorityDrag){e.preventDefault();endPriorityDrag(true);return;}
       const index=categoryOrder.indexOf(button.dataset.workPriority);let target=index;
       if(e.key==='ArrowLeft'||e.key==='ArrowUp')target=index-1;else if(e.key==='ArrowRight'||e.key==='ArrowDown')target=index+1;else if(e.key==='Home')target=0;else if(e.key==='End')target=categoryOrder.length-1;else return;
-      e.preventDefault();if(Math.max(0,Math.min(categoryOrder.length-1,target))===index)return;moveWorkPriority(button.dataset.workPriority,target);hasCustomPriority=true;applyWorkFilters();button.focus({preventScroll:true});
+      e.preventDefault();if(Math.max(0,Math.min(categoryOrder.length-1,target))===index)return;moveWorkPriority(button.dataset.workPriority,target);projectPriority=[];hasCustomPriority=true;applyWorkFilters();button.focus({preventScroll:true});
     });
   });
   const gallerySection=document.getElementById('portfolioGallery');
