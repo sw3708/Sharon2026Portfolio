@@ -13,12 +13,13 @@ for name in ['index.html','.nojekyll','assets','experiments']:
 
 # Open the existing sorter with the requested category first.
 categories = ('ui-ux', 'interactive', 'motion', '3d', 'vibe-coding')
-routes = {'ux': 'ui-ux', 'interactive': 'interactive', 'motion': 'motion',
+routes = {'ux': 'ui-ux', 'interactive': 'interactive', 'motion': 'motion', 'multimedia': 'multimedia',
           '3d': '3d', 'creative-tech': 'vibe-coding',
           'creative-technology': 'vibe-coding', 'vibe-coding': 'vibe-coding'}
+multimedia_order = ('motion', 'ui-ux', '3d', 'interactive', 'vibe-coding')
 creative_order = ('vibe-coding', 'interactive', 'ui-ux', 'motion', '3d')
 for slug, category in routes.items():
-    order = creative_order if category == 'vibe-coding' else (
+    order = multimedia_order if category == 'multimedia' else creative_order if category == 'vibe-coding' else (
         category, *(item for item in categories if item != category)
     )
     target = '../?order=' + '%2C'.join(order)
