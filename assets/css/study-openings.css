@@ -73,3 +73,9 @@ html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:
 /* Equal inner padding on both sides of the active mode segment. */
 #themeToggle .mode-label{box-sizing:border-box;}
 #themeToggle[aria-checked="false"] .mode-professional,#themeToggle[aria-checked="true"] .mode-sandbox{padding-inline:11px;justify-content:center;}
+
+/* Align the paired artwork caption with the other Gallery cards. */
+#portfolioGallery .gc-pair figcaption{align-items:baseline}
+@media(max-width:700px){
+  #portfolioGallery .gc-pair figcaption{align-items:flex-start}
+}

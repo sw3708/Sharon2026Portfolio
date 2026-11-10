@@ -31,6 +31,9 @@
     const root = document.documentElement;
     const btn = document.getElementById('themeToggle');
     if (!btn) return;
+    const heroFilm=document.getElementById('heroBackgroundVideo');
+    const professionalFilm={src:heroFilm.getAttribute('src'),poster:heroFilm.getAttribute('poster')};
+    const sandboxFilm={src:'assets/videos/75255c5d548c9b16.mp4',poster:'assets/images/a0d20774096a498f.webp'};
 
     let saved = null;
     try { saved = localStorage.getItem('theme'); } catch (e) { /* storage unavailable */ }
@@ -63,6 +66,13 @@
       btn.setAttribute('aria-label', 'Play mode');
       btn.setAttribute('title', dark ? 'Switch to Professional' : 'Switch to Play');
       btn.dataset.mode = dark ? 'sandbox' : 'professional';
+      const film=dark?sandboxFilm:professionalFilm;
+      if(heroFilm.getAttribute('src')!==film.src){
+        const wasPlaying=!heroFilm.paused;
+        heroFilm.poster=film.poster;
+        heroFilm.src=film.src;
+        if(wasPlaying)heroFilm.play().catch(()=>{});
+      }
       const workLink=document.querySelector('[data-work-mode-link]');
       if(workLink){workLink.href=dark?'#sandboxWork':'#work';workLink.textContent=dark?'Sandbox':'Work';}
       const heroTitle=document.querySelector('h1.hero-title'),word=heroTitle&&heroTitle.querySelector('.line:last-child>span');
@@ -186,8 +196,8 @@
   const PROJECT_TAGLINES={somnus:'a descent into sleep',nyid:'identity, reimagined',buildscape:'built to be explored','puma-kiosk':'personalizing the purchase','fall-into-me':'a pull you can feel','logo-animations':'identities in motion'};
   function projectMotionSource(key){const id={'fall-into-me':'fallProjectVideo',buildscape:'buildscapeMediaSource','logo-animations':'logosMediaSource'}[key];return id?document.getElementById(id).src:'';}
   const GALLERY_ITEMS=[
-    {"id":"vichy-render","title":"Vichy Mineral 89 Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/8089682772c286ce.webp","sortCategories":["3d"]},
-    {"id":"vichy-layout","title":"Vichy Mineral 89 Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/9186308700e2ff39.webp","sortCategories":["3d"]},
+    {"id":"vichy-render","title":"Vichy Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/8089682772c286ce.webp","sortCategories":["3d"]},
+    {"id":"vichy-layout","title":"Vichy Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/9186308700e2ff39.webp","sortCategories":["3d"]},
     {"id":"airline","title":"American Airlines App","category":"UI/UX Re-skin","kind":"image","width":1920,"height":1101,"src":"assets/images/5cf4dbf25e722e63.webp","sortCategories":["ui-ux"]},
     {"id":"comparison-1","title":"Black Mirror Title Sequence Clip","category":"Post-Editing, Special Effects","kind":"video","width":960,"height":1080,"src":"assets/videos/d3a3363ba59d1b8b.mp4","poster":"assets/images/b76101f793b3e3d6.webp","sortCategories":["motion"]},
     {"id":"pacho","title":"K. Pacho Countdown","category":"Social Media","kind":"image","width":1564,"height":1059,"src":"assets/images/d7fdcbd86bfee9ee.webp","sortCategories":[]},
@@ -958,6 +968,15 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   const STUDY_MODE_DEMO_KEY='sharon-study-mode-demo-v1';
   let studyModeDemoSeen=false;
   try{studyModeDemoSeen=sessionStorage.getItem(STUDY_MODE_DEMO_KEY)==='seen';}catch(e){}
+  function animateStudyOpening(){
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    snStory?.querySelectorAll('.study-opening-identity > *, .study-opening-description').forEach((text,index)=>{
+      text.animate([{opacity:0,translate:'0 7px'},{opacity:1,translate:'0 0'}],{
+        duration:720,delay:100+index*90,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'
+      });
+    });
+  }
+
   function demonstrateStudyModes(key){
     if(studyModeDemoSeen||!snStory?.querySelector('.study-mode-switch'))return;
     if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -966,12 +985,19 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     studyMode='full';
     renderStudy(key);
     const demoStory=snStory;
-    setTimeout(()=>{
-      if(!caseOpen||currentKey!==key||snStory!==demoStory||!caseView.classList.contains('ready'))return;
+    const isCurrent=()=>caseOpen&&currentKey===key&&snStory===demoStory&&caseView.classList.contains('ready');
+    setTimeout(async()=>{
+      if(!isCurrent())return;
+      const stack=demoStory.querySelector('.sn-panel-stack');
+      const fade=stack.animate([{opacity:1},{opacity:.1}],{duration:420,easing:'ease-in-out',fill:'forwards'});
+      await fade.finished.catch(()=>{});
+      if(!isCurrent())return;
       const destination=studyGroupFor(key,CS.snCurrent);
+      const focusSwitch=document.activeElement===demoStory.querySelector('.study-mode-switch');
       studyMode='condensed';
-      renderStudy(key,destination);
-    },1400);
+      renderStudy(key,destination,focusSwitch);
+      snStory.querySelector('.sn-panel-stack').animate([{opacity:.1},{opacity:1}],{duration:640,easing:'ease-out'});
+    },3800);
   }
 
   let studyMode='condensed',studyFullPanels=[];
@@ -1363,6 +1389,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
       caseAnimating = false;
       caseClose.focus({ preventScroll: true });
       demonstrateStudyModes(key);
+      animateStudyOpening();
     });
   }
 
