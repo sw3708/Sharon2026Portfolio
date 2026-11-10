@@ -121,7 +121,15 @@
   function syncPriorityPills(commit=false){
     categoryOrder.forEach((key,i)=>{const button=priorityButtons.find(button=>button.dataset.workPriority===key);button.style.order=String(i);button.setAttribute('aria-label',PRIORITY_LABELS[key]+', priority '+(i+1)+' of '+categoryOrder.length+'. Use arrow keys to reorder.');if(commit)priorityRow.appendChild(button);});
   }
+  const resumeLink=document.getElementById('resumeDownload');
+  const resumeByPriority={
+    'ui-ux':'assets/documents/resume-product-designer.pdf',
+    interactive:'assets/documents/resume-creative-technologist.pdf',
+    'vibe-coding':'assets/documents/resume-creative-technologist.pdf'
+  };
+  const defaultResume=resumeLink.getAttribute('href');
   function applyWorkFilters(writeURL=true,announce=true){
+    resumeLink.href=resumeByPriority[categoryOrder[0]]||defaultResume;
     featuredProjectKeys=rankedProjectKeys().slice(0,3);
     const ordered=featuredProjectKeys.map(key=>slides.find(slide=>slide.dataset.project===key));
     slides.forEach(slide=>{slide.hidden=!ordered.includes(slide);slide.setAttribute('aria-hidden',String(slide.hidden));if(slide.hidden)slide.classList.remove('active');});
