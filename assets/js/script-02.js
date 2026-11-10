@@ -177,25 +177,41 @@
   function projectCategoryText(key){return PROJECT_CATALOG[key].categories.map(category=>PRIORITY_LABELS[category]).join(' · ');}
   const PROJECT_TAGLINES={somnus:'a descent into sleep',nyid:'identity, reimagined',buildscape:'built to be explored','puma-kiosk':'personalizing the purchase','fall-into-me':'a pull you can feel','logo-animations':'identities in motion'};
   function projectMotionSource(key){const id={'fall-into-me':'fallProjectVideo',buildscape:'buildscapeMediaSource','logo-animations':'logosMediaSource'}[key];return id?document.getElementById(id).src:'';}
-  const GALLERY_ITEMS=[{"id":"vichy-render","title":"Vichy","category":"Product visualization","kind":"image","width":1920,"height":1080,"src":"assets/images/8089682772c286ce.webp"},{"id":"vichy-layout","title":"Vichy","category":"Campaign layout","kind":"image","width":1920,"height":1080,"src":"assets/images/9186308700e2ff39.webp"},{"id":"airline","title":"American Airlines","category":"App concept","kind":"image","width":1920,"height":1101,"src":"assets/images/5cf4dbf25e722e63.webp"},{"id":"comparison-1","title":"Black Mirror / 01","category":"Motion comparison","kind":"video","width":960,"height":1080,"src":"assets/videos/d3a3363ba59d1b8b.mp4","poster":"assets/images/b76101f793b3e3d6.webp"},{"id":"pacho","title":"K. Pacho","category":"Social design","kind":"image","width":1564,"height":1059,"src":"assets/images/d7fdcbd86bfee9ee.webp"},{"id":"pin","title":"New York pin","category":"Graphic design","kind":"image","width":1716,"height":1602,"src":"assets/images/126aff7628e0c7fb.webp"},{"id":"garden","title":"Garden study","category":"3D","kind":"image","width":1920,"height":1920,"src":"assets/images/ec973d39dade4865.webp"}];
+  const GALLERY_ITEMS=[
+    {"id":"vichy-render","title":"Vichy Mineral 89 Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/8089682772c286ce.webp","sortCategories":["3d"]},
+    {"id":"vichy-layout","title":"Vichy Mineral 89 Advertisement","category":"3D Modeling, Photo Editing","kind":"image","width":1920,"height":1080,"src":"assets/images/9186308700e2ff39.webp","sortCategories":["3d"]},
+    {"id":"airline","title":"American Airlines App","category":"UI/UX Re-skin","kind":"image","width":1920,"height":1101,"src":"assets/images/5cf4dbf25e722e63.webp","sortCategories":["ui-ux"]},
+    {"id":"comparison-1","title":"Black Mirror Title Sequence Clip","category":"Post-Editing, Special Effects","kind":"video","width":960,"height":1080,"src":"assets/videos/d3a3363ba59d1b8b.mp4","poster":"assets/images/b76101f793b3e3d6.webp","sortCategories":["motion"]},
+    {"id":"pacho","title":"K. Pacho Countdown","category":"Social Media","kind":"image","width":1564,"height":1059,"src":"assets/images/d7fdcbd86bfee9ee.webp","sortCategories":[]},
+    {"id":"pin","title":"SkillsUSA NY Pin (1st Place)","category":"Pin Design, Mock Up","kind":"image","width":1716,"height":1602,"src":"assets/images/126aff7628e0c7fb.webp","sortCategories":[]},
+    {"id":"garden","title":"Isometric Lake Garden","category":"3D Modeling","kind":"image","width":1920,"height":1920,"src":"assets/images/ec973d39dade4865.webp","sortCategories":["3d"]}
+  ];
   let galleryCarouselCleanup=null,galleryLightbox=null;
-  function galleryCarouselMarkup(){
+  function orderedGalleryItems(){
+    if(!hasCustomPriority)return GALLERY_ITEMS;
+    const rank=item=>{
+      const index=categoryOrder.findIndex(category=>item.sortCategories.includes(category));
+      return index===-1?categoryOrder.length:index;
+    };
+    return [...GALLERY_ITEMS].sort((a,b)=>rank(a)-rank(b));
+  }
+  function galleryCarouselMarkup(items){
     const arrow=direction=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M'+(direction==='prev'?'19 12H5m6-6-6 6 6 6':'5 12h14m-6-6 6 6-6 6')+'"/></svg>';
     const art=(item,index)=>'<button type="button" class="gc-art" data-gallery-art="'+index+'" aria-haspopup="dialog" aria-label="Enlarge '+escapeProjectText(item.title+' / '+item.category)+'"><img src="'+(item.poster||item.src)+'" alt="'+escapeProjectText(item.title+' / '+item.category)+'" width="'+item.width+'" height="'+item.height+'" loading="lazy" decoding="async" draggable="false">'+(item.kind==='video'?'<video data-gallery-clip="'+index+'" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>':'')+'<span class="gc-enlarge" aria-hidden="true">↗</span></button>';
-    const columns=GALLERY_ITEMS.flatMap((item,index)=>{
+    const columns=items.flatMap((item,index)=>{
       if(item.id==='vichy-layout')return [];
       const pair=item.id==='vichy-render';
-      return ['<figure class="gc-item'+(pair?' gc-pair':'')+'" data-gallery-index="'+index+'" role="group" aria-label="'+escapeProjectText(item.title)+'"><div class="gc-artworks">'+art(item,index)+(pair?art(GALLERY_ITEMS[index+1],index+1):'')+'</div><figcaption><span>'+escapeProjectText(item.title)+'</span><span>'+escapeProjectText(pair?'Product visualization / Campaign layout':item.category)+'</span></figcaption></figure>'];
+      return ['<figure class="gc-item'+(pair?' gc-pair':'')+'" data-gallery-index="'+index+'" role="group" aria-label="'+escapeProjectText(item.title)+'"><div class="gc-artworks">'+art(item,index)+(pair?art(items[index+1],index+1):'')+'</div><figcaption><span>'+escapeProjectText(item.title)+'</span><span>'+escapeProjectText(item.category)+'</span></figcaption></figure>'];
     }).join('');
     return '<section class="work-carousel" id="galleryCarousel" aria-labelledby="galleryCarouselTitle" aria-roledescription="carousel"><header class="gc-heading"><div><p class="gc-kicker">Graphic · 3D · Motion · UI</p><h2 id="galleryCarouselTitle">Gallery.</h2><p class="gc-handwritten">a little bit of everything.</p></div><div class="gc-controls"><div class="gc-control-status"><button type="button" class="gc-motion" aria-pressed="false">Pause motion</button><span class="gc-count" aria-live="off">01 / 06</span></div><button type="button" class="gc-prev" aria-label="Previous artwork">'+arrow('prev')+'</button><button type="button" class="gc-next" aria-label="Next artwork">'+arrow('next')+'</button></div></header><div class="gc-track" tabindex="0" aria-label="Gallery artworks. Swipe or use left and right arrow keys."><div class="gc-row">'+columns+'</div></div></section>';
   }
 
-  function setupGalleryCarousel(){
+  function setupGalleryCarousel(items){
     if(galleryCarouselCleanup)galleryCarouselCleanup();
     const root=document.getElementById('galleryCarousel'),track=root.querySelector('.gc-track'),cards=[...root.querySelectorAll('.gc-item')],clips=[...root.querySelectorAll('[data-gallery-clip]')],motion=matchMedia('(prefers-reduced-motion: reduce)'),abort=new AbortController(),signal=abort.signal;
     let index=0,frame=0,drag=null,suppressUntil=0,paused=motion.matches,modalOpen=false,autoFrame=0,lastTime=0,position=0,direction=1,hovered=false,focused=false,inView=false,resumeAt=0;
     const motionButton=root.querySelector('.gc-motion'),prev=root.querySelector('.gc-prev'),next=root.querySelector('.gc-next'),visible=new Set();
-    const playClips=()=>clips.forEach(video=>{const active=visible.has(video)&&!paused&&!modalOpen&&!document.hidden&&document.documentElement.dataset.theme!=='dark';if(active){if(!video.hasAttribute('src'))video.src=GALLERY_ITEMS[+video.dataset.galleryClip].src;video.play().catch(()=>{});}else video.pause();});
+    const playClips=()=>clips.forEach(video=>{const active=visible.has(video)&&!paused&&!modalOpen&&!document.hidden&&document.documentElement.dataset.theme!=='dark';if(active){if(!video.hasAttribute('src'))video.src=items[+video.dataset.galleryClip].src;video.play().catch(()=>{});}else video.pause();});
     const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting)visible.add(entry.target);else visible.delete(entry.target);});playClips();},{threshold:.35});clips.forEach(video=>observer.observe(video));
     const syncMotion=()=>{motionButton.setAttribute('aria-pressed',String(paused));motionButton.textContent=paused?'Play motion':'Pause motion';playClips();};syncMotion();
     function update(){frame=0;const middle=track.getBoundingClientRect().left;let distance=Infinity;cards.forEach((card,i)=>{const r=card.getBoundingClientRect(),d=Math.abs(r.left-middle);if(d<distance){distance=d;index=i;}});if(track.scrollLeft>0&&track.scrollWidth-track.clientWidth-track.scrollLeft<2)index=cards.length-1;root.querySelector('.gc-count').textContent=String(index+1).padStart(2,'0')+' / '+String(cards.length).padStart(2,'0');prev.disabled=index===0;next.disabled=index===cards.length-1;}
@@ -217,15 +233,15 @@
     autoFrame=requestAnimationFrame(drift);
     function endDrag(event){if(!drag||drag.id!==event.pointerId)return;const moved=drag.moved;drag=null;track.classList.remove('is-dragging');if(track.hasPointerCapture(event.pointerId))track.releasePointerCapture(event.pointerId);if(moved){suppressUntil=performance.now()+300;update();go(index);}}
     track.addEventListener('pointerup',endDrag,{signal});track.addEventListener('pointercancel',endDrag,{signal});track.addEventListener('lostpointercapture',()=>{drag=null;track.classList.remove('is-dragging');},{signal});
-    track.addEventListener('click',event=>{if(performance.now()<suppressUntil){event.preventDefault();event.stopPropagation();return;}const button=event.target.closest('[data-gallery-art]');if(button)openGalleryArtwork(+button.dataset.galleryArt,button,()=>{modalOpen=false;playClips();});if(button){modalOpen=true;playClips();}},{signal});
+    track.addEventListener('click',event=>{if(performance.now()<suppressUntil){event.preventDefault();event.stopPropagation();return;}const button=event.target.closest('[data-gallery-art]');if(button)openGalleryArtwork(items,+button.dataset.galleryArt,button,()=>{modalOpen=false;playClips();});if(button){modalOpen=true;playClips();}},{signal});
     document.addEventListener('visibilitychange',playClips,{signal});window.addEventListener('portfolio-mode-change',playClips,{signal});window.addEventListener('resize',schedule,{signal});motion.addEventListener('change',()=>{paused=motion.matches;syncMotion();},{signal});
     galleryCarouselCleanup=()=>{abort.abort();observer.disconnect();sectionObserver.disconnect();cancelAnimationFrame(autoFrame);clips.forEach(v=>v.pause());if(frame)cancelAnimationFrame(frame);};requestAnimationFrame(update);
   }
-  function openGalleryArtwork(first,source,onClose){
+  function openGalleryArtwork(items,first,source,onClose){
     if(galleryLightbox&&galleryLightbox.open)return;
     const dialog=document.createElement('dialog');galleryLightbox=dialog;dialog.className='gc-viewer';dialog.setAttribute('aria-labelledby','gcViewerTitle');dialog.innerHTML='<header><div><h2 id="gcViewerTitle"></h2><p class="gc-viewer-category"></p></div><button type="button" class="gc-viewer-close" aria-label="Close artwork">×</button></header><div class="gc-viewer-stage"></div><footer><button type="button" class="gc-viewer-prev" aria-label="Previous artwork">←</button><span class="gc-viewer-count" aria-live="polite"></span><button type="button" class="gc-viewer-next" aria-label="Next artwork">→</button></footer>';
     let active=first;const stage=dialog.querySelector('.gc-viewer-stage');
-    function show(index){const old=stage.querySelector('video');if(old)old.pause();active=(index+GALLERY_ITEMS.length)%GALLERY_ITEMS.length;const item=GALLERY_ITEMS[active];dialog.querySelector('h2').textContent=item.title;dialog.querySelector('.gc-viewer-category').textContent=item.category;dialog.querySelector('.gc-viewer-count').textContent=(active+1)+' / '+GALLERY_ITEMS.length;stage.replaceChildren();const media=document.createElement(item.kind==='video'?'video':'img');media.src=item.src;if(item.kind==='video'){media.controls=true;media.loop=true;media.playsInline=true;media.muted=true;media.poster=item.poster;}else media.alt=item.title;stage.append(media);if(item.kind==='video'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)media.play().catch(()=>{});}
+    function show(index){const old=stage.querySelector('video');if(old)old.pause();active=(index+items.length)%items.length;const item=items[active];dialog.querySelector('h2').textContent=item.title;dialog.querySelector('.gc-viewer-category').textContent=item.category;dialog.querySelector('.gc-viewer-count').textContent=(active+1)+' / '+items.length;stage.replaceChildren();const media=document.createElement(item.kind==='video'?'video':'img');media.src=item.src;if(item.kind==='video'){media.controls=true;media.loop=true;media.playsInline=true;media.muted=true;media.poster=item.poster;}else media.alt=item.title;stage.append(media);if(item.kind==='video'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)media.play().catch(()=>{});}
     dialog.querySelector('.gc-viewer-close').onclick=()=>dialog.close();dialog.querySelector('.gc-viewer-prev').onclick=()=>show(active-1);dialog.querySelector('.gc-viewer-next').onclick=()=>show(active+1);
     dialog.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagation();if(event.target.tagName==='VIDEO')return;if(event.key==='ArrowLeft'){event.preventDefault();show(active-1);}if(event.key==='ArrowRight'){event.preventDefault();show(active+1);}});
     const pauseHidden=()=>{if(document.hidden){const video=stage.querySelector('video');if(video)video.pause();}};document.addEventListener('visibilitychange',pauseHidden);
@@ -242,12 +258,13 @@
     if(galleryCarouselCleanup){galleryCarouselCleanup();galleryCarouselCleanup=null;}
     galleryGrid.querySelectorAll('video').forEach(video=>video.pause());
     const keys=rankedProjectKeys().filter(key=>!featuredProjectKeys.includes(key));
-    galleryGrid.innerHTML=keys.map(galleryProjectCard).join('')+galleryCarouselMarkup();
+    const artworks=orderedGalleryItems();
+    galleryGrid.innerHTML=keys.map(galleryProjectCard).join('')+galleryCarouselMarkup(artworks);
     archiveGrid.innerHTML='';archive.hidden=true;
     galleryGrid.querySelectorAll('[data-gallery-project]').forEach(button=>button.addEventListener('click',()=>openPortfolioProject(button.dataset.galleryProject,button,true)));
     galleryGrid.querySelectorAll('[data-motion-project]').forEach(video=>{video.src=projectMotionSource(video.dataset.motionProject);});
     slides.forEach(slide=>{let tag=slide.querySelector('.slide-script');if(!tag){tag=document.createElement('p');tag.className='slide-script';slide.querySelector('.slide-title').after(tag);}tag.textContent=PROJECT_TAGLINES[slide.dataset.project];});
-    setupGalleryCarousel();
+    setupGalleryCarousel(artworks);
     document.dispatchEvent(new Event('portfolio-media-update'));
   }
   function openPortfolioGallery(){document.getElementById('galleryCarousel').scrollIntoView({behavior:'smooth',block:'start'});}
