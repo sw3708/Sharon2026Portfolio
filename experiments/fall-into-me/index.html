@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="en" class="locked"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909"><title>Fall Into Me — A Time Between Seconds</title><meta name="description" content="Scroll into the eye."><style>
+<html lang="en" class="locked fall-booting"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909"><title>Fall Into Me — A Time Between Seconds</title><meta name="description" content="Scroll into the eye."><style>
 *{box-sizing:border-box}html{background:#090909;scroll-behavior:auto}body{margin:0;color:#ece6da;font-family:Arial,Helvetica,sans-serif;overscroll-behavior:none}.stage{position:fixed;inset:0;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}.stage canvas,.vig{position:absolute;inset:0;width:100%;height:100%}#world{touch-action:pan-y}#grains,#chromatic,.vig{pointer-events:none}#grains,#chromatic{mix-blend-mode:screen}.game{position:fixed;inset:0;z-index:5;background:#000;opacity:0;visibility:hidden;transition:opacity 2.2s ease,visibility 0s 2.2s}.game.on{opacity:1;visibility:visible;transition:opacity 2.2s ease}.game iframe{border:0;width:100%;height:100%;display:block}button{font:inherit;color:inherit;cursor:pointer}button:focus-visible{outline:2px solid #e4bb82;outline-offset:7px}.intro{position:fixed;inset:0;will-change:transform;pointer-events:none;z-index:2;text-align:center}.heading{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);transition:top 1.8s cubic-bezier(.65,0,.25,1),transform 1.8s cubic-bezier(.65,0,.25,1)}.ready .heading{top:calc(18% - 50px);transform:none}.eyebrow{line-height:11px;margin-bottom:max(3px,calc(2vh - 11px));font-size:9px;letter-spacing:.35em;color:#9e9487}.title{margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:clamp(50px,7.5vw,116px);letter-spacing:-.055em;line-height:1}.title em{font-weight:400}.invitation{position:absolute;bottom:15%;width:100%}.invitation #enterLabel{transition:opacity .35s}.invitation button{pointer-events:auto;background:none;border:0;font-size:9px;letter-spacing:.25em;padding:14px 24px}.arrow{display:block;margin:14px auto 0;width:1px;height:31px;background:linear-gradient(#e4cbaa,transparent);animation:breathe 2s infinite}@keyframes breathe{50%{opacity:.3;transform:translateY(7px)}}.curtain{position:fixed;inset:0;background:#000;z-index:1;pointer-events:none;transition:opacity 1.8s cubic-bezier(.4,0,.2,1)}.ready .curtain{opacity:0}html.locked,html.locked body{overflow:hidden}.eyebrow{opacity:0;animation:eyebrowIn 1.6s cubic-bezier(.2,.7,.2,1) .3s forwards}@keyframes eyebrowIn{from{opacity:0;letter-spacing:.9em;filter:blur(4px)}to{opacity:1;letter-spacing:.35em;filter:blur(0)}}.title .w{display:inline-block;overflow:hidden;padding:0 .06em .14em;margin:0 -.06em -.14em;vertical-align:top}.title .w>*{display:inline-block;transform:translateY(110%);opacity:0;animation:wordIn 1.3s cubic-bezier(.2,.8,.2,1) forwards}.title .w:nth-child(1)>*{animation-delay:.9s}.title .w:nth-child(2)>*{animation-delay:1.15s}.title .w:nth-child(3)>*{animation-delay:1.4s}@keyframes wordIn{to{transform:none;opacity:1}}.invitation{opacity:0;transform:translateY(8px);transition:opacity 1.2s ease .6s,transform 1.2s ease .6s}.ready .invitation{opacity:1;transform:none}@media(prefers-reduced-motion:reduce){.eyebrow,.title .w>*{animation:none;opacity:1;transform:none;filter:none;letter-spacing:.35em}.title .w>*{letter-spacing:inherit}}@media(max-width:600px){.ready .heading{top:calc(20% - 50px)}.eyebrow{margin-bottom:max(3px,calc(3vh - 11px))}.invitation{bottom:17%}}
+.fall-booting .intro,.fall-booting .intro *{animation-play-state:paused!important}.fall-booting .intro{visibility:hidden!important}
 </style><script>addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({type:"fall:close"},"*");}},true);</script></head><body>
 <div class="curtain"></div><div class="stage" id="stage"><canvas id="world" aria-label="Scroll or use the arrow keys to move through the video."></canvas><canvas id="grains"></canvas><canvas id="chromatic" aria-hidden="true"></canvas><div class="vig" id="vig"></div></div>
 <div class="game" id="game"></div><div class="intro" id="intro"><div class="heading" id="heading"><div class="eyebrow">A Time Between Seconds</div><h1 class="title"><span class="w"><span>Fall</span></span> <span class="w"><em>into</em></span> <span class="w"><span>me.</span></span></h1></div><div class="invitation"><button id="enter"><span id="enterLabel">SCROLL TO ENTER</span><span class="arrow"></span></button></div></div>
@@ -19,18 +20,29 @@ resize();addEventListener('resize',resize);
 // Frames are preloaded and decoded up front, so scrubbing never waits on a video seek.
 // They load in spread-out passes (every 32nd frame, then every 16th, …) so the whole
 // scroll range has coverage early; any gap borrows the nearest loaded frame.
-const imgs=new Array(FRAMES),ready=new Uint8Array(FRAMES);let loadedCount=0,allLoaded,firstLoaded;
-const allP=new Promise(r=>allLoaded=r),firstP=new Promise(r=>firstLoaded=r);
+const imgs=new Array(FRAMES),ready=new Uint8Array(FRAMES);let firstLoaded;
+const firstP=new Promise(resolve=>{firstLoaded=resolve;});
 const order=[START_FRAME],seen=new Set([START_FRAME]);for(let step=32;step>=1;step/=2)for(let i=0;i<FRAMES;i+=step)if(!seen.has(i)){seen.add(i);order.push(i)}
-order.forEach(i=>{let im=new Image();im.decoding='async';im.src='assets/frames/f'+String(i+1).padStart(3,'0')+'.webp';imgs[i]=im;
-const done=ok=>{if(ok){ready[i]=1;drawn=-1;if(i===START_FRAME)firstLoaded()}if(++loadedCount===FRAMES)allLoaded()};
-im.onload=()=>(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(()=>done(true));im.onerror=()=>{if(i===START_FRAME)firstLoaded();done(false)}});
+order.forEach(i=>{let im=new Image();im.decoding='async';if(i===START_FRAME)im.fetchPriority='high';imgs[i]=im;
+const done=ok=>{if(ok){ready[i]=1;drawn=-1;if(i===START_FRAME)firstLoaded()}};
+im.onload=()=>(im.decode?im.decode().catch(()=>{}):Promise.resolve()).then(()=>done(true));im.onerror=()=>done(false);im.src='assets/frames/f'+String(i+1).padStart(3,'0')+'.webp';});
 function nearest(i){for(let d=0;d<FRAMES;d++){if(i-d>=START_FRAME&&ready[i-d])return i-d;if(i+d<FRAMES&&ready[i+d])return i+d}return -1}
 
-// Loading screen: stays black until the frames are in and the title has animated in.
+// Keep input and sound locked until the opening is visible.
 if('scrollRestoration' in history)history.scrollRestoration='manual';scrollTo(0,0);
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,textDone=new Promise(r=>setTimeout(r,reduce?0:2600));
-const framesReady=Promise.race([allP,firstP.then(()=>new Promise(r=>setTimeout(r,15000)))]);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let fallStarted=false;
+function startFall(){
+ if(fallStarted)return;
+ fallStarted=true;
+ const root=document.documentElement;
+ root.classList.remove('fall-booting');
+ setTimeout(()=>{
+  root.classList.add('ready');
+  root.classList.remove('locked');
+ },reduce?0:650);
+ startMusic();
+}
 
 // Opening resistance: scroll moves immediately, with 35% initially reaching
 // the animation. Resistance eases off over 0.8 viewport heights, with a continuous
@@ -98,7 +110,8 @@ const PART={radius:.11,push:2600,drag:4.5,spring:18,damp:3.4,grain:.5}; // radiu
 const GLOW={gamma:.45,gain:1.6,floor:.06,knee:.16}; // brightens grains for contrast against black; colours below `floor` stay dark
 let PM=0,PD=null,pal=null,pidx=null,PN=0,pox,poy,pvx,pvy,pjx,pjy,pgs,lastMouse=null,mvel={x:0,y:0},gPos=null,gCol=null,gCount=0;
 const GRAIN_K=[.8,.95,1.1,1.35]; // four grain sizes for a natural, sandy mix
-const particlesP=new Promise(res=>{let sc=document.createElement('script');sc.src='assets/particles.js';sc.onload=()=>{try{PD=window.PARTICLES;
+const particleScript=document.createElement('script');
+{const sc=particleScript;sc.src='assets/particles.js';sc.onload=()=>{try{PD=window.PARTICLES;
 const dec=b=>{let s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
 pal=dec(PD.palette);PN=PD.w*PD.h;
 // brighten each palette colour (same hue, lifted brightness), keeping the faintest ones dark for contrast
@@ -108,7 +121,7 @@ PM=PN*PER_CELL;pox=new Float32Array(PM);poy=new Float32Array(PM);pvx=new Float32
 gPos=new Float32Array(PM*3);gCol=new Uint8Array(PM*4);
 const hash=(n,k)=>{let h=Math.sin(n*k)*43758.5453;return h-Math.floor(h)};
 for(let m=0;m<PM;m++){pjx[m]=hash(m,12.9898);pjy[m]=hash(m,78.233);pgs[m]=Math.floor(hash(m,39.425)*4)} // each grain sits at a random spot inside its cell
-PD.rle=null}catch(e){PD=null}res()};sc.onerror=()=>res();document.head.appendChild(sc)});
+PD.rle=null}catch(e){PD=null}};document.head.appendChild(sc);}
 
 // Physics + colour for every grain; fills gPos (x, y, diameter in CSS px) and gCol (rgba).
 function stepParticles(pos,dt){
@@ -197,9 +210,6 @@ pbuf.fill(0);for(let c=0;c<gCount;c++){let x=gPos[c*3]*dpr,y=gPos[c*3+1]*dpr,rad
 let cx=Math.round(x),cy=Math.round(y);for(let yy=-n;yy<=n;yy++){let Y=cy+yy;if(Y<0||Y>=BH)continue;for(let xx=-n;xx<=n;xx++){let X=cx+xx;if(X<0||X>=BW)continue;
 let A=(255*al*clamp(rad+.5-Math.hypot(xx+cx-x,yy+cy-y)))|0,q=Y*BW+X;if(A>(pbuf[q]>>>24))pbuf[q]=(A<<24|rgb)>>>0}}}
 pcx.putImageData(pimg,0,0);return pc}
-// Loading screen lifts once the frames, the particle colours and the title animation are all ready.
-Promise.all([textDone,framesReady,Promise.race([particlesP,new Promise(r=>setTimeout(r,15000))])]).then(()=>{document.documentElement.classList.add('ready');document.documentElement.classList.remove('locked')});
-
 // ── Blue / orange chromatic dust, matching the game's dust shader palette ──
 const CHROMATIC={count:1400,opacity:.62,radius:100,push:900,spring:12,damp:5};
 const dustCanvas=$('chromatic'),dustCtx=dustCanvas.getContext('2d');
@@ -333,16 +343,15 @@ const MUSIC_VOL=.9;
 const music=new Audio('assets/ambient.mp3');music.loop=true;music.preload='auto';music.volume=0;
 let musicOn=false,musicMuted=false,musicFade=null;
 function rampMusic(to,secs){clearInterval(musicFade);const from=music.volume,t0=performance.now();musicFade=setInterval(()=>{let u=clamp((performance.now()-t0)/(secs*1000));music.volume=from+(to-from)*u;if(u>=1)clearInterval(musicFade)},50)}
-function startMusic(){if(musicOn)return;music.play().then(()=>{musicOn=true;rampMusic(musicMuted?0:MUSIC_VOL,3)}).catch(()=>{})}
+function startMusic(){if(!fallStarted||musicOn)return;music.play().then(()=>{musicOn=true;rampMusic(musicMuted?0:MUSIC_VOL,3)}).catch(()=>{})}
 function setMusicMuted(m){musicMuted=m;if(swGain)swGain.gain.setTargetAtTime(m?0:SWOOSH_VOL,sctx.currentTime,.03);if(musicOn)rampMusic(m?0:MUSIC_VOL,.4);if(smaster)smaster.gain.setTargetAtTime(m?0:SFX_VOL,sctx.currentTime,.05)} // M mutes music and game sounds together
-startMusic(); // works straight away if the browser already allows it
 ['pointerdown','keydown','touchend'].forEach(ev=>addEventListener(ev,startMusic,{passive:true}));
 addEventListener('keydown',e=>{if(!gameOn&&(e.key==='m'||e.key==='M')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setMusicMuted(!musicMuted)});
 
 function cover(src,alpha){let sw=src.naturalWidth||src.width,sh=src.naturalHeight||src.height;if(!sw||!sh)return;let r=Math.max(W/sw,H/sh),cw=W/r,ch=H/r;ctx.globalAlpha=alpha;ctx.drawImage(src,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,W,H);ctx.globalAlpha=1}
 
 let loopStopped=false;
-function frame(now){if(gameShown){loopStopped=true;return} // the game has taken over: the animation stops drawing
+function frame(now){if(!fallStarted){last=now;requestAnimationFrame(frame);return}if(gameShown){loopStopped=true;return} // the game has taken over: the animation stops drawing
 let dt=Math.min((now-last)/1000,.05);last=now;
 let target=resistedScreens(scrollY/H),openingFollow=2.6+(EYE_FOLLOW-2.6)*smooth(0,START_RESIST_SCREENS-START_OFFSET,p),follow=openingFollow+(5-openingFollow)*smooth(EYE_SCREENS*.8,EYE_SCREENS*1.2,p);p+=(target-p)*(1-Math.exp(-dt*follow));if(Math.abs(target-p)<1e-4)p=target; // p = screens scrolled
 if(rewind){let u=clamp((now-rewind.t0)/(REWIND_SECS*1000));p=rewind.from*(1-easeRewind(u));scrollTo(0,nativeScreens(p)*H);if(u>=1)finishRewind()} // fast scroll back up: the page really scrolls, the animation plays in reverse
@@ -360,18 +369,19 @@ renderChromaticDust(pos,dt,now);
 $('intro').style.opacity=1-smooth(0,.35,p);$('intro').style.visibility=(p>.5||introHold)?'hidden':'visible';
 requestAnimationFrame(frame)}requestAnimationFrame(frame);
 
-function go(sc){scrollTo({top:nativeScreens(sc)*H,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+function go(sc){if(document.documentElement.classList.contains('locked'))return;scrollTo({top:nativeScreens(sc)*H,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
 $('enter').onclick=()=>go(EYE_SCREENS);
-addEventListener('keydown',e=>{if(gameOn)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();scrollBy({top:(e.key==='ArrowDown'?1:-1)*H*.25,behavior:'smooth'})}if(e.key==='Escape')go(0)});
+addEventListener('keydown',e=>{if(gameOn||!fallStarted)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();scrollBy({top:(e.key==='ArrowDown'?1:-1)*H*.25,behavior:'smooth'})}if(e.key==='Escape')go(0)});
 </script><script>
    let fallSavedMute=null;
    addEventListener('message',e=>{
     if(e.source===parent&&e.data){
+     if(e.data.type==='fall:start')startFall();
      if(e.data.type==='fall:mute'){setMusicMuted(!!e.data.muted);if(gameFrame)gameFrame.contentWindow.postMessage({type:'gravity:setmute',muted:musicMuted},'*');}
      if(e.data.type==='fall:visibility'){if(e.data.hidden){fallSavedMute=musicMuted;setMusicMuted(true);}else if(fallSavedMute!==null){setMusicMuted(fallSavedMute);fallSavedMute=null;}}
     }
     if(gameFrame&&e.source===gameFrame.contentWindow&&e.data){if(e.data.type==='fall:escape')parent.postMessage({type:'fall:close'},'*');if(e.data.type==='gravity:mute')parent.postMessage({type:'fall:sound',muted:!!e.data.muted},'*');}
    });
    addEventListener('keydown',e=>{if(e.key.toLowerCase()==='m')setTimeout(()=>parent.postMessage({type:'fall:sound',muted:musicMuted},'*'),0);});
-   Promise.all([framesReady,textDone]).then(()=>parent.postMessage({type:'fall:ready'},'*'));
+   firstP.then(()=>{if(parent===window)startFall();else parent.postMessage({type:'fall:ready'},'*');});
   </script></body></html>
