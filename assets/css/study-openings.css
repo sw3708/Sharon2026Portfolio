@@ -79,3 +79,17 @@ html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:
 @media(max-width:700px){
   #portfolioGallery .gc-pair figcaption{align-items:flex-start}
 }
+
+/* A modest size increase, preserving the photo rotations and dragging. */
+#about .about-wrap{width:min(560px,100%);}
+#about .scene{width:100%;}
+#about .pol-1{width:clamp(92px,9.35vw,132px);}
+#about .pol-2{width:clamp(99px,10.45vw,145px);}
+#about .pol-3{width:clamp(88px,8.8vw,125px);}
+#about .pol-4,#about .pol-5{width:clamp(95px,9.9vw,139px);}
+@media(min-width:701px) and (max-width:1100px){#about .about-wrap{width:min(560px,56vw);}}
+@media(max-width:700px){
+  #about .about-wrap{width:min(560px,calc(100% + 20px));}
+  #about .pol-1{width:88px;}#about .pol-2{width:97px;}
+  #about .pol-3{width:84px;}#about .pol-4{width:92px;}#about .pol-5{width:90px;}
+}

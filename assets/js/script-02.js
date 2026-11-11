@@ -901,7 +901,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
       journey:heading('Interaction architecture','Two entry paths.<br>One useful shortlist.','Guidance is optional. Shoppers can take the quiz or go directly to the full catalog, then choose between try-on assistance and saving for later.')+flow+'<div class="pk-flow-docs">'+image('flow-overview','Original workflow / navigation and handoff')+image('flow-quiz','Original workflow / guided quiz')+'</div>',
       catalog:heading('Information architecture','Keep categories shallow.<br>Let filters do the work.','Women, Men and Kids form the top level. Products can appear in several subcategories; size, color, price and availability refine the selection.')+table(['Category','Planning inventory','Example subcategories'],[['Women','740','Lifestyle · Running · Training & Gym · Basketball · Motorsport'],['Men','757','Lifestyle · Running · Soccer Cleats · Motorsport · Boots & Mids'],['Kids','363','Babies & Toddlers · Little Kids · Big Kids · Easy On & Off']])+'<p class="pk-caption">The process deck’s planning snapshot totals 1,860 products, with ±10% seasonal variation assumed in the brief. These counts inform the concept’s structure; they are not current inventory.</p>'+notes([['Persistent within a category','Changing subcategories preserves filters; changing the top-level category resets them.'],['Availability stays visible','Show in-store and online-only status. Unavailable size/color combinations cannot be selected.'],['Pricing remains explicit','Show the original and sale price together. Apply promotions at external checkout.']]),
       personalization:heading('Personalization & content','Useful without an account.')+notes([['Session-based guidance','Quiz answers inform recommendations without requiring login. Optional loyalty personalization is a proposed extension.'],['A compact product card','Image, name, price, colors, category and try-on availability. Names are limited to two lines.'],['Details when needed','Product purpose, benefits, materials, technologies, size/color choices and availability.']])+table(['Content','Planning limit'],[['Product name','About 60 characters / two lines in grids'],['Short description','40–90 characters'],['Full description','120–300 characters'],['Key benefits','1–3 short bullets']]),
-      wireframes:heading('Wireframes','The shopping journey,<br>before visual refinement.','The first six images are wireframes. Separate final-screen references show associate selection and waiting; distinct wireframes for those two states are not included. The cart icon represents a saved shortlist, not checkout.')+'<div class="pk-wireframes">'+[['wire-path','Choose a path'],['wire-quiz','Quiz'],['wire-rec','Recommendations'],['wire-catalog','Catalog'],['wire-product','Product details'],['wire-cart','Saved selection'],['associate','Associate handoff / final screen reference'],['waiting','Waiting state / final screen reference']].map(([key,title])=>image(key,title)).join('')+'</div>',
+      wireframes:heading('Wireframes','The shopping journey,<br>before visual refinement.','Six wireframes map the shopping journey. The cart icon represents a saved shortlist, not checkout.')+'<div class="pk-wireframes">'+[['wire-path','Choose a path'],['wire-quiz','Quiz'],['wire-rec','Recommendations'],['wire-catalog','Catalog'],['wire-product','Product details'],['wire-cart','Saved selection']].map(([key,title])=>image(key,title)).join('')+'</div>',
       discover:heading('Guided discovery','Start with what<br>the shopper needs.')+screens([['paths','Choose a path','A quick quiz for guidance, or immediate access to the catalog.'],['quiz','Activity & use','The shown activity choices include everyday wear, running and training. Visible progress keeps the quiz sequence legible.'],['recommendations','Curated recommendations','The designed result prioritizes one shoe and keeps alternatives available. Recommendation scoring is a proposed integration, not demonstrated live logic.']]),
       compare:heading('Browse & select','Find it. Inspect it.<br>Build a shortlist.')+screens([['catalog','Catalog','Refine by category, size, color and availability. Search and sort support a specific goal.'],['product','Product details','Review angles and product information, then choose color and size.'],['cart','Saved selection','Edit or remove items before choosing try-on assistance or saving for later.']])+'<p class="pk-caption">The interface’s cart icon represents a saved shortlist. No purchase is completed here; the next step is associate assistance or mobile transfer. A dedicated side-by-side comparison screen is outside the shown prototype.</p>',
       handoff:heading('Digital to physical','The next step<br>is a person—or a phone.')+screens([['associate','Choose an associate','The example profiles expose language and product specialties to support a shopper’s selection. They illustrate a proposed handoff, not a live staff-availability service.'],['waiting','Confirm the handoff','The designed waiting screen asks the shopper to remain by the kiosk. Associate acknowledgement, unavailability and cancellation still require a tested staff-side flow.']])+notes([['Try on in-store','Share the selected styles with an associate for fitting and checkout.'],['Continue later','Proposed SMS, email, app and QR/NFC transfer keep the shortlist available after the session.']])+'<p class="pk-credit">Associate portraits are stock photography from Pexels; profiles are interface examples.</p>',
@@ -969,11 +969,12 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   let studyModeDemoSeen=false;
   try{studyModeDemoSeen=sessionStorage.getItem(STUDY_MODE_DEMO_KEY)==='seen';}catch(e){}
   function animateStudyOpening(){
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    snStory?.querySelectorAll('.study-opening-identity > *, .study-opening-description').forEach((text,index)=>{
-      text.animate([{opacity:0,translate:'0 7px'},{opacity:1,translate:'0 0'}],{
-        duration:720,delay:100+index*90,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'
-      });
+    if(snObserver)snObserver.disconnect();
+    const story=snStory;
+    // Wait until the overlay is visible and the destination scroll is applied.
+    requestAnimationFrame(()=>{
+      if(story!==snStory||!caseView.classList.contains('ready'))return;
+      snObserver=observeSomnusEntrances(story,caseView);
     });
   }
 
@@ -1093,6 +1094,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     if(key==='logo-animations')snStory.querySelectorAll('.la-earlier').forEach(details=>details.addEventListener('toggle',()=>requestAnimationFrame(updateSomnus)));
     if(key==='logo-animations')snStory.querySelectorAll('video').forEach(video=>{video.addEventListener('play',()=>snStory.querySelectorAll('video').forEach(other=>{if(other!==video)other.pause();}));});
     if(focusSwitch&&readingSwitch)readingSwitch.focus({preventScroll:true});
+    if(caseView.classList.contains('ready'))animateStudyOpening();
   }
   function buildNYID(){studyMode='condensed';studyFullPanels=[];renderStudy('nyid');}
   function buildSomnus(){studyMode='condensed';studyFullPanels=[];renderStudy('somnus');}
@@ -1122,30 +1124,29 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   function observeSomnusEntrances(story,root){
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
     if(!('IntersectionObserver' in window)||reduced.matches)return null;
-    const targets=new Set(),animations=new Set();
-    const groups='.se-heading,.se-intro-title,.se-intro-title>div,.se-project-meta,.se-problem-grid,.se-audience,.se-idea,.se-idea>div:not(.se-descent),.se-wire-grid,.se-board-pair,.se-final-grid,.se-final-grid>div,.se-outcome,.se-next-grid,.sf-pair,.sf-three,.sf-sketches,.ni-phones,.ni-pair,.ni-benefits,.ni-wire-grid,.ni-wire-set,.bs-intro,.bs-meta,.bs-split,.bs-pair,.bs-portraits,.bs-installation,.bs-flow,.bs-presets,.bs-metrics,.bs-notes,.la-intro,.la-brand-heading,.la-meta,.la-frames,.la-process,.la-brand-brief,.la-direction,.la-direct-heading,.la-pdf-intro,.la-pdf-references';
-    function collect(node){
-      if(node.matches('.sf-originals,.sf-section-picker'))return;
-      if(node.matches(groups)){[...node.children].forEach(collect);return;}
-      targets.add(node);
-    }
-    story.querySelectorAll('.sn-panel-body').forEach(body=>[...body.children].forEach(collect));
-    story.querySelectorAll('.sf-source-pages figure,.ni-alternate .ni-figure').forEach(figure=>targets.add(figure));
+    const targets=[...story.querySelectorAll('.sn-panel-body :is(h1,h2,h3,h4,p,dl,ul,ol,table,figcaption,.sn-kicker,.study-opening-kicker)')]
+      .filter(node=>!node.closest('.sf-section-picker')&&!node.parentElement.closest('p,dl,ul,ol,table,figcaption'));
+    const animations=new Map();
+    // Hold only text blocks pending their section's entrance; layout and media stay put.
+    targets.forEach(target=>{
+      const animation=target.animate([
+        {opacity:0,translate:'0 12px'},
+        {opacity:1,translate:'0 0'}
+      ],{duration:720,easing:'cubic-bezier(.2,.7,.2,1)',fill:'both'});
+      animation.pause();
+      animations.set(target,animation);
+    });
     const observer=new IntersectionObserver(entries=>{
-      if(reduced.matches)return;
       const entering=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
       entering.forEach((entry,index)=>{
         observer.unobserve(entry.target);
-        if(typeof entry.target.animate!=='function')return;
-        const media=entry.target.matches('figure,.se-film,.bs-film,.se-map,.se-style,.sf-map,.se-next-card');
-        const animation=entry.target.animate([
-          {opacity:0,transform:media?'translate3d(0,22px,0) scale(.99)':'translate3d(0,16px,0)'},
-          {opacity:1,transform:'none'}
-        ],{duration:media?760:650,delay:Math.min(index,3)*60,easing:'cubic-bezier(.2,.65,.3,1)',fill:'backwards'});
-        animations.add(animation);
-        animation.finished.then(()=>animations.delete(animation),()=>animations.delete(animation));
+        const animation=animations.get(entry.target);
+        if(!animation)return;
+        animation.effect.updateTiming({delay:Math.min(index,4)*90});
+        animation.play();
+        animation.finished.then(()=>{animation.cancel();animations.delete(entry.target);},()=>{});
       });
-    },{root,rootMargin:'0px 0px -36px 0px',threshold:.06});
+    },{root,rootMargin:'0px 0px -24px 0px',threshold:0});
     targets.forEach(target=>observer.observe(target));
     function stop(){observer.disconnect();animations.forEach(animation=>animation.cancel());animations.clear();}
     function changed(){if(reduced.matches)stop();}
@@ -1164,7 +1165,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
       dialog.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagation();});
       dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});},{once:true});dialog.showModal();
     }));
-    snObserver=observeSomnusEntrances(snStory,caseView);
+
   }
 
   function updateSomnus() {
@@ -1441,10 +1442,6 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   });
 
   caseClose.addEventListener('click', () => closeCase());
-  document.getElementById('sandboxReturn').addEventListener('click',()=>{
-    if(document.documentElement.getAttribute('data-theme')==='dark')document.getElementById('themeToggle').click();
-    requestAnimationFrame(()=>document.getElementById('work').scrollIntoView({behavior:'smooth',block:'start'}));
-  });
   window.addEventListener('portfolio-mode-change',()=>{
     if(document.documentElement.getAttribute('data-theme')!=='dark')return;
     if(projectDialog.open)projectDialog.close();
