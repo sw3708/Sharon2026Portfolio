@@ -756,7 +756,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   function snCompletePanels(){
     const media=(key,alt)=>{
       const item=SN_COMPLETE_MEDIA[key];
-      return '<button type="button" class="se-expand" data-se-expand aria-label="View full size: '+escapeProjectText(alt)+'"><img src="'+item.src+'" width="'+item.width+'" height="'+item.height+'" alt="'+escapeProjectText(alt)+'" loading="lazy" decoding="async"></button>';
+      return '<button type="button" class="se-expand'+(key==='refinement'?' sf-refinement-crop':'')+'" data-se-expand aria-label="View full size: '+escapeProjectText(alt)+'"><img src="'+item.src+'" width="'+item.width+'" height="'+item.height+'" alt="'+escapeProjectText(alt)+'" loading="lazy" decoding="async"></button>';
     };
     const fig=(key,alt)=>'<figure class="sf-figure">'+media(key,alt)+'<figcaption>'+alt+'</figcaption></figure>';
     const asset=(key,alt)=>'<figure class="sf-figure"><button type="button" class="se-expand" data-se-expand aria-label="View full size: '+escapeProjectText(alt)+'">'+snImage(key,alt)+'</button><figcaption>'+alt+'</figcaption></figure>';
@@ -976,7 +976,7 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     // Wait until the overlay is visible and the destination scroll is applied.
     studyEntranceFrame=requestAnimationFrame(()=>{
       if(story!==snStory||!caseView.classList.contains('ready'))return;
-      snObserver=currentKey==='somnus'?observeSomnusScrollText(story,caseView):observeSomnusEntrances(story,caseView);
+      snObserver=observeStudyScrollText(story,caseView);
     });
   }
 
@@ -1122,8 +1122,8 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     const label=last?(nextVisibleWorkSlide(currentKey)?'See next project':'Browse gallery'):'Next section';
     CS.snNext.setAttribute('aria-label',label);CS.snNext.querySelector('.cs-next-label').textContent=label;
   }
-  /* Somnus trial: each text block reveals when it reaches the reading area. */
-  function observeSomnusScrollText(story,root){
+  /* Each study text block reveals when it reaches the reading area. */
+  function observeStudyScrollText(story,root){
     const reduced=matchMedia('(prefers-reduced-motion: reduce)');
     if(reduced.matches||!('IntersectionObserver' in window))return null;
     const targets=[...story.querySelectorAll('.sn-panel-body :is(h1,h2,h3,h4,p,dl,ul,ol,table,figcaption,.sn-kicker,.study-opening-kicker)')]
@@ -1149,47 +1149,16 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     return {disconnect(){stop();reduced.removeEventListener('change',changed);}};
   }
 
-  /* Reveal individual reading blocks; content remains visible if motion is unavailable. */
-  function observeSomnusEntrances(story,root){
-    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-    if(!('IntersectionObserver' in window)||reduced.matches)return null;
-    const targets=[...story.querySelectorAll('.sn-panel-body :is(h1,h2,h3,h4,p,dl,ul,ol,table,figcaption,.sn-kicker,.study-opening-kicker)')]
-      .filter(node=>!node.closest('.sf-section-picker')&&!node.parentElement.closest('p,dl,ul,ol,table,figcaption'));
-    const animations=new Map();
-    // Hold only text blocks pending their section's entrance; layout and media stay put.
-    targets.forEach(target=>{
-      const animation=target.animate([
-        {opacity:0,translate:'0 12px'},
-        {opacity:1,translate:'0 0'}
-      ],{duration:720,easing:'cubic-bezier(.2,.7,.2,1)',fill:'both'});
-      animation.pause();
-      animations.set(target,animation);
-    });
-    const observer=new IntersectionObserver(entries=>{
-      const entering=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
-      entering.forEach((entry,index)=>{
-        observer.unobserve(entry.target);
-        const animation=animations.get(entry.target);
-        if(!animation)return;
-        animation.effect.updateTiming({delay:Math.min(index,4)*90});
-        animation.play();
-        animation.finished.then(()=>{animation.cancel();animations.delete(entry.target);},()=>{});
-      });
-    },{root,rootMargin:'0px 0px -24px 0px',threshold:0});
-    targets.forEach(target=>observer.observe(target));
-    function stop(){observer.disconnect();animations.forEach(animation=>animation.cancel());animations.clear();}
-    function changed(){if(reduced.matches)stop();}
-    reduced.addEventListener('change',changed);
-    return {disconnect(){stop();reduced.removeEventListener('change',changed);}};
-  }
-
   function setupSomnusEditorial(){
     snStory.querySelectorAll('[data-se-expand]').forEach(button=>button.addEventListener('click',()=>{
       const image=button.querySelector('img'),dialog=document.createElement('dialog');
       dialog.className='se-image-viewer';dialog.setAttribute('aria-label',image.alt);
       const close=document.createElement('button');close.type='button';close.className='se-viewer-close';close.textContent='Close ×';close.setAttribute('aria-label','Close full-size image');
       const full=document.createElement('img');full.src=image.currentSrc||image.src;full.alt=image.alt;if(image.closest('.ni-wireframe'))full.classList.add('nyid-pencil-image');if(image.closest('.la-pdf-identity:not(.la-identity-dark)'))full.classList.add('la-transparent-logo');
-      dialog.append(close,full);document.body.append(dialog);
+      if(button.classList.contains('sf-refinement-crop')){
+        const crop=document.createElement('div');crop.className='sf-refinement-crop';crop.append(full);dialog.append(close,crop);
+      }else dialog.append(close,full);
+      document.body.append(dialog);
       close.addEventListener('click',()=>dialog.close());dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
       dialog.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagation();});
       dialog.addEventListener('close',()=>{dialog.remove();button.focus({preventScroll:true});},{once:true});dialog.showModal();

@@ -94,10 +94,15 @@ html[data-theme="dark"] .hero-quote .q-line:nth-child(3){position:relative;left:
   #about .pol-3{width:84px;}#about .pol-4{width:92px;}#about .pol-5{width:90px;}
 }
 
-/* Somnus scroll reveal trial, shared by its condensed and full study. */
-#caseView.somnus-case .sn-text-wait{opacity:0;translate:0 18px;}
-#caseView.somnus-case .sn-text-enter{animation:somnus-text-enter .85s cubic-bezier(.2,.7,.2,1) var(--text-delay,0ms) both;}
+/* Scroll reveals shared by every condensed and full case study. */
+#caseView .sn-text-wait{opacity:0;translate:0 18px;}
+#caseView .sn-text-enter{animation:somnus-text-enter .85s cubic-bezier(.2,.7,.2,1) var(--text-delay,0ms) both;}
 @keyframes somnus-text-enter{from{opacity:0;translate:0 18px;}to{opacity:1;translate:0 0;}}
 @media(prefers-reduced-motion:reduce){
-  #caseView.somnus-case .sn-text-wait,#caseView.somnus-case .sn-text-enter{opacity:1;translate:none;animation:none;}
+  #caseView .sn-text-wait,#caseView .sn-text-enter{opacity:1;translate:none;animation:none;}
 }
+
+/* Extract the overlapping interface screens from the refinement slide. */
+.sf-refinement-crop{position:relative;display:block;width:100%;aspect-ratio:737/615;overflow:hidden;clip-path:polygon(18.1818% 0,100% 0,100% 55.2846%,84.5319% 55.2846%,84.5319% 100%,0 100%,0 42.9268%,18.1818% 42.9268%);}
+.sf-refinement-crop img{position:absolute!important;left:-136.0923%;top:-36.748%;width:260.5156%!important;height:auto!important;max-width:none!important;max-height:none!important;}
+.se-image-viewer .sf-refinement-crop{width:min(88vw,1000px);max-height:none;}
