@@ -968,13 +968,15 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
   const STUDY_MODE_DEMO_KEY='sharon-study-mode-demo-v1';
   let studyModeDemoSeen=false;
   try{studyModeDemoSeen=sessionStorage.getItem(STUDY_MODE_DEMO_KEY)==='seen';}catch(e){}
+  let studyEntranceFrame=0;
   function animateStudyOpening(){
+    cancelAnimationFrame(studyEntranceFrame);
     if(snObserver)snObserver.disconnect();
     const story=snStory;
     // Wait until the overlay is visible and the destination scroll is applied.
-    requestAnimationFrame(()=>{
+    studyEntranceFrame=requestAnimationFrame(()=>{
       if(story!==snStory||!caseView.classList.contains('ready'))return;
-      snObserver=observeSomnusEntrances(story,caseView);
+      snObserver=currentKey==='somnus'?observeSomnusScrollText(story,caseView):observeSomnusEntrances(story,caseView);
     });
   }
 
@@ -1120,6 +1122,33 @@ const nyScreen=(key,alt,title,eager=false)=>'<figure class="sn-screen"><div clas
     const label=last?(nextVisibleWorkSlide(currentKey)?'See next project':'Browse gallery'):'Next section';
     CS.snNext.setAttribute('aria-label',label);CS.snNext.querySelector('.cs-next-label').textContent=label;
   }
+  /* Somnus trial: each text block reveals when it reaches the reading area. */
+  function observeSomnusScrollText(story,root){
+    const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+    if(reduced.matches||!('IntersectionObserver' in window))return null;
+    const targets=[...story.querySelectorAll('.sn-panel-body :is(h1,h2,h3,h4,p,dl,ul,ol,table,figcaption,.sn-kicker,.study-opening-kicker)')]
+      .filter(node=>!node.closest('.sf-section-picker')&&!node.parentElement.closest('p,dl,ul,ol,table,figcaption'));
+    targets.forEach(node=>node.classList.add('sn-text-wait'));
+    const observer=new IntersectionObserver(entries=>{
+      entries.filter(entry=>entry.isIntersecting)
+        .sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top)
+        .forEach((entry,index)=>{
+          const node=entry.target;
+          observer.unobserve(node);
+          node.style.setProperty('--text-delay',Math.min(index,3)*100+'ms');
+          node.classList.replace('sn-text-wait','sn-text-enter');
+        });
+    },{root,rootMargin:'-150px 0px -10% 0px',threshold:0});
+    targets.forEach(node=>observer.observe(node));
+    function stop(){
+      observer.disconnect();
+      targets.forEach(node=>{node.classList.remove('sn-text-wait','sn-text-enter');node.style.removeProperty('--text-delay');});
+    }
+    function changed(){if(reduced.matches)stop();}
+    reduced.addEventListener('change',changed);
+    return {disconnect(){stop();reduced.removeEventListener('change',changed);}};
+  }
+
   /* Reveal individual reading blocks; content remains visible if motion is unavailable. */
   function observeSomnusEntrances(story,root){
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
