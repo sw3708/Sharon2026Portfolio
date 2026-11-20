@@ -77,15 +77,6 @@
       if(workLink){workLink.href=dark?'#sandboxWork':'#work';workLink.textContent=dark?'Sandbox':'Work';}
       const heroTitle=document.querySelector('h1.hero-title'),word=heroTitle&&heroTitle.querySelector('.line:last-child>span');
       if(word&&!word.querySelector('.hero-letter'))word.textContent=dark?'Sandbox':'Portfolio';
-      const quote=document.querySelector('.hero-quote');
-      if(quote){
-        const lines=dark?['Creative play,','ongoing experiments,','and tech exploration.']:['Merging visual design &','creative technology.'];
-        quote.replaceChildren(...lines.map((text,index)=>{
-          const line=document.createElement('span');line.className='q-line'+(index?' q-indent':'');line.textContent=text;
-
-          return line;
-        }));
-      }
       window.dispatchEvent(new Event('portfolio-mode-change'));
       requestAnimationFrame(animateHero);
     }
@@ -138,7 +129,29 @@
     'vibe-coding':'assets/documents/resume-creative-technologist.pdf'
   };
   const defaultResume=resumeLink.getAttribute('href');
+  const heroQuote=document.querySelector('.hero-quote');
+  const priorityTaglines={
+    'ui-ux':['Turning creative problems','into intuitive solutions'],
+    motion:['Bringing ideas, stories,','& interactions to life'],
+    interactive:['Designing next-gen tactile','& immersive experiences'],
+    '3d':['Expanding visual storytelling','into three-dimensional space'],
+    'vibe-coding':['Merging visual design &','creative technology']
+  };
+  function updateHeroTagline(){
+    const lines=document.documentElement.dataset.theme==='dark'
+      ? ['Creative play,','ongoing experiments,','and tech exploration.']
+      : priorityTaglines[categoryOrder[0]];
+    if([...heroQuote.children].map(line=>line.textContent).join('\n')===lines.join('\n'))return;
+    heroQuote.replaceChildren(...lines.map((text,index)=>{
+      const line=document.createElement('span');
+      line.className=index?'q-line q-indent':'q-line';
+      line.textContent=text;
+      return line;
+    }));
+  }
+  window.addEventListener('portfolio-mode-change',updateHeroTagline);
   function applyWorkFilters(writeURL=true,announce=true){
+    updateHeroTagline();
     resumeLink.href=resumeByPriority[categoryOrder[0]]||defaultResume;
     featuredProjectKeys=rankedProjectKeys().slice(0,3);
     const ordered=featuredProjectKeys.map(key=>slides.find(slide=>slide.dataset.project===key));
